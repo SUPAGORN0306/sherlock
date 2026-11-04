@@ -1,0 +1,100 @@
+
+# Sherlock - Temporal Split Configuration
+# Dataset: TransXion (2025-01-01 to 2025-12-31)
+# Updated: 2026-10-18
+# Status: Audited; pending pipeline verification
+
+version: "1.2"
+frozen_date: null
+last_updated: "2026-10-18"
+
+# Temporal Boundaries
+# Train: Jan 1 - Nov 25
+# Validation: Nov 26 - Dec 14
+# Test: Dec 15 - Dec 31
+temporal_split:
+  train_end: "2025-11-25 23:59:59"
+  val_start: "2025-11-26 00:00:00"
+  val_end: "2025-12-14 23:59:59"
+  test_start: "2025-12-15 00:00:00"
+  test_end: "2025-12-31 23:59:59"
+
+# Statistics verified by chunked audit of data/tx.csv
+stats:
+  train:
+    transactions: 2714741
+    fraud: 4213
+    fraud_rate: 0.1552
+    days: 329
+
+  val:
+    transactions: 161834
+    fraud: 267
+    fraud_rate: 0.1650
+    days: 19
+
+  test:
+    transactions: 152595
+    fraud: 161
+    fraud_rate: 0.1055
+    days: 17
+
+total:
+  transactions: 3029170
+  fraud: 4641
+  fraud_rate: 0.1532
+  days: 365
+
+# Account coverage
+# Account identity is defined as Bank ID + Account ID.
+# Overlap is measured against the training account set.
+entity_coverage:
+  train_accounts: 44162
+  train_unseen: 0
+  train_overlap_pct: 100.0
+
+  val_accounts: 12420
+  val_unseen: 1786
+  val_overlap_pct: 85.62
+
+  test_accounts: 12217
+  test_unseen: 3364
+  test_overlap_pct: 72.46
+
+# Temporal Features
+temporal_features:
+  - hour
+  - dow
+  - month
+  - day
+  - is_weekend
+  - is_night
+  - is_business_hour
+  - is_peak_month
+
+# Splitting Strategy
+strategy:
+  type: "temporal"
+  leakage_prevention: true
+  inductive: true
+
+# Known Constraints
+constraints:
+  - "Temporal split only; random split is prohibited."
+  - "Train has 4,213 laundering transactions."
+  - "Validation has 267 laundering transactions."
+  - "Test has 161 laundering transactions; evaluation uncertainty may be high."
+  - "Test account overlap with Train is 72.46% using Bank ID + Account ID."
+  - "Cold-start performance must be evaluated separately on unseen accounts."
+  - "Verify feature generation and leakage prevention in the actual pipeline."
+  - "Temporal feature definitions must match the implementation."
+
+# Reproducibility
+seed: 42
+hash: null  # Generate after the final split implementation is verified.
+
+# Change Log
+changelog:
+  - date: "2026-10-18"
+    version: "1.2"
+    change: "Updated temporal boundaries and statistics after auditing tx.csv; pending pipeline verification."

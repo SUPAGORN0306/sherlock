@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Large raw dataset files (save bandwidth, keep only processed parquet)
+data/raw/
+data/splits/
+*.csv
+
+# Old test databases
+data/processed/audit_trail.db
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
