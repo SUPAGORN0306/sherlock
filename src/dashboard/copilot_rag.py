@@ -7,7 +7,6 @@ Includes both Markdown and Print-Ready Official HTML Form (AMLO Form 1-03) with 
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import pandas as pd
-import chromadb
 from src.dashboard.i18n import translate_val
 
 KNOWLEDGE_DOCS_TH = [
@@ -80,38 +79,27 @@ Section 10: Any broker who procures, advertises, or traffics mule accounts faces
 
 
 class CopilotRAG:
+    """Lightweight, zero-memory regulatory knowledge base & reasoning engine."""
     def __init__(self):
-        self.client = chromadb.Client()
-        self.collection = self.client.get_or_create_collection("sherlock_aml_kb_v5")
-        self._seed_kb()
-
-    def _seed_kb(self):
-        if self.collection.count() == 0:
-            docs = [d["text"] for d in KNOWLEDGE_DOCS_TH]
-            metas = [{"title": d["title"], "category": d["category"]} for d in KNOWLEDGE_DOCS_TH]
-            ids = [d["id"] for d in KNOWLEDGE_DOCS_TH]
-            self.collection.add(documents=docs, metadatas=metas, ids=ids)
+        pass
 
     def query(self, query_text: str, n_results: int = 2, lang: str = "th") -> List[Dict[str, Any]]:
-        if lang == "en":
-            q_low = query_text.lower()
-            matched = [
-                d for d in KNOWLEDGE_DOCS_EN
-                if any(w in (d["title"] + " " + d["text"]).lower() for w in q_low.split())
-            ]
-            return (matched or KNOWLEDGE_DOCS_EN)[:n_results]
+        docs = KNOWLEDGE_DOCS_EN if lang == "en" else KNOWLEDGE_DOCS_TH
+        if not query_text or not query_text.strip():
+            return docs[:n_results]
 
-        results = self.collection.query(query_texts=[query_text], n_results=n_results)
-        output = []
-        if results and "documents" in results and len(results["documents"]) > 0:
-            for i, doc in enumerate(results["documents"][0]):
-                meta = results["metadatas"][0][i] if "metadatas" in results else {}
-                output.append({
-                    "title": meta.get("title", "ข้อบังคับ"),
-                    "category": meta.get("category", "ทั่วไป"),
-                    "text": doc
-                })
-        return output
+        keywords = [k.strip().lower() for k in query_text.split() if len(k.strip()) > 1]
+        if not keywords:
+            return docs[:n_results]
+
+        scored = []
+        for d in docs:
+            content = f"{d['title']} {d['category']} {d['text']}".lower()
+            score = sum(3 for k in keywords if k in d['title'].lower()) + sum(1 for k in keywords if k in content)
+            scored.append((score, d))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [d for _, d in scored[:n_results]]
 
     def interpret_case(self, question: str, case_context: Dict[str, Any], lang: str = "th") -> str:
         acc = case_context.get("account_id", "N/A")

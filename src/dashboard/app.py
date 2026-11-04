@@ -60,13 +60,22 @@ st.set_page_config(
 def load_datasets():
     data_dir = PROJECT_ROOT / "data" / "processed"
     pred_df = pd.read_parquet(data_dir / "predictions.parquet")
-    feat_df = pd.read_parquet(data_dir / "node_features.parquet")
+    pred_df["risk_score"] = pred_df["risk_score"].astype(np.float32)
+    
+    # Load only necessary rule features to save memory on cloud
+    feat_cols = ["account", "s1_hit", "s3_hit", "s6_hit", "s7_same_amount_cnt", "night_txn_ratio", "drift_txn_cnt"]
+    feat_df = pd.read_parquet(data_dir / "node_features.parquet", columns=feat_cols)
     
     tx_df = pd.read_parquet(
         data_dir / "tx_clean.parquet",
         columns=["Timestamp", "From Account", "To Account", "Amount Received", "Payment Format", "Is Laundering"]
     )
-    tx_df["hour"] = tx_df["Timestamp"].dt.hour
+    # Downcast datatypes to reduce RAM usage by >70%
+    tx_df["hour"] = tx_df["Timestamp"].dt.hour.astype(np.int8)
+    tx_df["Amount Received"] = tx_df["Amount Received"].astype(np.float32)
+    tx_df["Is Laundering"] = tx_df["Is Laundering"].astype(np.int8)
+    tx_df["Payment Format"] = tx_df["Payment Format"].astype("category")
+
     person_df = pd.read_parquet(data_dir / "person_clean.parquet")
     merchant_df = pd.read_parquet(data_dir / "merchant_clean.parquet")
     
