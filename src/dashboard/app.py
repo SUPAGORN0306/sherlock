@@ -589,25 +589,24 @@ with tab_queue:
     pending_txt = "รอตรวจสอบ" if lang == "th" else "Pending Review"
     view_sub["audit_status"] = view_sub["account"].apply(lambda acc: audit_map.get(acc, pending_txt))
     
-    with lim_c1:
-        if lang == "th":
-            st.caption(f"พบทั้งหมด **{len(q_df):,}** บัญชี (กำลังแสดง **{len(view_sub):,}** บัญชีแรกตามคะแนนความเสี่ยง)")
-            cols_rename = {
-                "account": "เลขที่บัญชี",
-                "disp_tier": "ระดับความเสี่ยง",
-                "risk_score": "คะแนนความเสี่ยง (0-100)",
-                "last_active_str": "ทำรายการล่าสุด",
-                "audit_status": "สถานะการตรวจสอบ"
-            }
-        else:
-            st.caption(f"Found **{len(q_df):,}** accounts (Displaying **{len(view_sub):,}** accounts)")
-            cols_rename = {
-                "account": "Account ID",
-                "disp_tier": "Risk Classification",
-                "risk_score": "Risk Score (0-100)",
-                "last_active_str": "Last Active Date",
-                "audit_status": "Review Status"
-            }
+    if lang == "th":
+        st.caption(f"พบทั้งหมด **{len(q_df):,}** บัญชี (กำลังแสดง **{len(view_sub):,}** รายการตามเงื่อนไข)")
+        cols_rename = {
+            "account": "เลขที่บัญชี",
+            "disp_tier": "ระดับความเสี่ยง",
+            "risk_score": "คะแนนความเสี่ยง (0-100)",
+            "last_active_str": "ทำรายการล่าสุด",
+            "audit_status": "สถานะการตรวจสอบ"
+        }
+    else:
+        st.caption(f"Found **{len(q_df):,}** accounts (Displaying **{len(view_sub):,}** accounts)")
+        cols_rename = {
+            "account": "Account ID",
+            "disp_tier": "Risk Classification",
+            "risk_score": "Risk Score (0-100)",
+            "last_active_str": "Last Active Date",
+            "audit_status": "Review Status"
+        }
         
     st.dataframe(view_sub[list(cols_rename.keys())].rename(columns=cols_rename), use_container_width=True, hide_index=True)
     
