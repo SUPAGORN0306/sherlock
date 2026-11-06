@@ -1,18 +1,95 @@
 {
+  "split_info": {
+    "total_nodes": 44162,
+    "train_nodes": 35329,
+    "val_nodes": 4416,
+    "test_nodes": 4417
+  },
+  "validation_set": {
+    "xgboost": {
+      "pr_auc": 91.07,
+      "roc_auc": 95.55,
+      "f1_score": 88.37,
+      "accuracy": 97.31,
+      "precision": 94.17,
+      "recall": 83.24,
+      "precision_at_100": 100.0
+    },
+    "graphsage": {
+      "pr_auc": 93.49,
+      "roc_auc": 96.6,
+      "f1_score": 88.12,
+      "accuracy": 97.06,
+      "precision": 87.48,
+      "recall": 88.77,
+      "precision_at_100": 100.0
+    },
+    "ensemble": {
+      "pr_auc": 94.5,
+      "roc_auc": 97.39,
+      "f1_score": 91.99,
+      "accuracy": 98.08,
+      "precision": 94.21,
+      "recall": 89.87,
+      "precision_at_100": 100.0
+    }
+  },
+  "test_set": {
+    "xgboost": {
+      "pr_auc": 89.83,
+      "roc_auc": 95.46,
+      "f1_score": 87.84,
+      "accuracy": 97.19,
+      "precision": 93.92,
+      "recall": 82.5,
+      "precision_at_100": 100.0
+    },
+    "graphsage": {
+      "pr_auc": 91.69,
+      "roc_auc": 96.2,
+      "f1_score": 86.51,
+      "accuracy": 96.69,
+      "precision": 86.83,
+      "recall": 86.19,
+      "precision_at_100": 99.0
+    },
+    "ensemble": {
+      "pr_auc": 93.6,
+      "roc_auc": 97.31,
+      "f1_score": 91.42,
+      "accuracy": 97.94,
+      "precision": 93.63,
+      "recall": 89.32,
+      "precision_at_100": 100.0
+    }
+  },
   "xgboost": {
-    "pr_auc": 90.47,
-    "roc_auc": 95.51,
-    "f1_score": 88.11,
+    "pr_auc": 89.83,
+    "roc_auc": 95.46,
+    "f1_score": 87.84,
+    "accuracy": 97.19,
+    "precision": 93.92,
+    "recall": 82.5,
     "precision_at_100": 100.0
   },
   "graphsage": {
-    "pr_auc": 92.62,
-    "roc_auc": 96.41,
-    "f1_score": 87.32,
-    "precision_at_100": 100.0
+    "pr_auc": 91.69,
+    "roc_auc": 96.2,
+    "f1_score": 86.51,
+    "accuracy": 96.69,
+    "precision": 86.83,
+    "recall": 86.19,
+    "precision_at_100": 99.0
   },
   "ensemble": {
     "weights": "0.60 GraphSAGE + 0.40 XGBoost",
+    "pr_auc": 93.6,
+    "roc_auc": 97.31,
+    "f1_score": 91.42,
+    "accuracy": 97.94,
+    "precision": 93.63,
+    "recall": 89.32,
+    "precision_at_100": 100.0,
     "tier_distribution": {
       "ปกติ (ความเสี่ยงต่ำ)": 34945,
       "ม้าดำ (Blacklist ปปง.)": 4389,

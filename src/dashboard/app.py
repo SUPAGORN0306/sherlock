@@ -379,10 +379,10 @@ with tab_overview:
         tier_df = tier_df.sort_values("count", ascending=True)
         
         c_map = {
-            translate_tier("ม้าดำ (Blacklist ปปง.)", lang): "#EF4444",
-            translate_tier("ม้าเทาเข้ม (มีผู้เสียหาย แจ้งความแล้ว)", lang): "#F97316",
-            translate_tier("ม้าเทาอ่อน (มีผู้เสียหาย ยังไม่แจ้งความ)", lang): "#FBBF24",
-            translate_tier("ม้าน้ำตาลเข้ม (สงสัยระดับสูง)", lang): "#B45309",
+            translate_tier("ม้าดำ (Blacklist ปปง.)", lang): "#1E293B",
+            translate_tier("ม้าเทาเข้ม (มีผู้เสียหาย แจ้งความแล้ว)", lang): "#475569",
+            translate_tier("ม้าเทาอ่อน (มีผู้เสียหาย ยังไม่แจ้งความ)", lang): "#94A3B8",
+            translate_tier("ม้าน้ำตาลเข้ม (สงสัยระดับสูง)", lang): "#78350F",
             translate_tier("ม้าน้ำตาลอ่อน (เริ่มสงสัย พฤติกรรมแปลก)", lang): "#D97706",
             translate_tier("ปกติ (ความเสี่ยงต่ำ)", lang): "#10B981"
         }
@@ -445,9 +445,9 @@ with tab_overview:
         else:
             occ_df = pd.DataFrame({"occ": [], "count": []})
             
-        fig4 = px.bar(occ_df, x="count", y="occ", orientation="h", text="count")
-        fig4.update_traces(marker_color="#F59E0B", texttemplate='%{text:,}', textposition='outside')
-        fig4.update_layout(**common_layout, xaxis_title="", yaxis_title="")
+        fig4 = px.bar(occ_df, x="count", y="occ", orientation="h", text="count", color="count", color_continuous_scale="Sunsetdark")
+        fig4.update_traces(texttemplate='%{text:,}', textposition='outside')
+        fig4.update_layout(**common_layout, coloraxis_showscale=False, xaxis_title="", yaxis_title="")
         st.plotly_chart(fig4, use_container_width=True)
 
     r3_c1, r3_c2 = st.columns(2)
@@ -479,7 +479,7 @@ with tab_overview:
         else:
             age_df = pd.DataFrame({"age_grp": [], "risk_score": []})
             
-        fig6 = px.bar(age_df, x="age_grp", y="risk_score", text="risk_score", color="risk_score", color_continuous_scale="Reds")
+        fig6 = px.bar(age_df, x="age_grp", y="risk_score", text="risk_score", color="risk_score", color_continuous_scale="Blues")
         fig6.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         fig6.update_layout(**common_layout, coloraxis_showscale=False, xaxis_title="", yaxis_title="คะแนนเฉลี่ย (0-100)" if lang == "th" else "Avg Score (0-100)")
         st.plotly_chart(fig6, use_container_width=True)
