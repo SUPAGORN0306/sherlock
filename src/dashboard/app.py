@@ -89,6 +89,13 @@ def load_datasets():
         pred_enriched["person_age"].notna(), "individual",
         np.where(pred_enriched["industry"].notna(), "corporate", "external")
     )
+    # Precompute last active transaction date per account
+    f_max = tx_df.groupby("From Account")["Timestamp"].max()
+    t_max = tx_df.groupby("To Account")["Timestamp"].max()
+    acc_max = pd.concat([f_max, t_max]).groupby(level=0).max().reset_index()
+    acc_max.columns = ["account", "last_active_date"]
+    pred_enriched = pred_enriched.merge(acc_max, on="account", how="left")
+    
     return pred_enriched, feat_df, tx_df, person_df, merchant_df
 
 @st.cache_resource(show_spinner=False)
@@ -492,7 +499,7 @@ with tab_overview:
 # TAB 2: Case Triage Queue (With Review Status Filter!)
 # =============================================================
 with tab_queue:
-    q_col1, q_col2, q_col3, q_col4 = st.columns([2.2, 1.5, 1.5, 1.5])
+    q_col1, q_col2, q_col3, q_col4, q_col5 = st.columns([2.0, 1.3, 1.3, 1.8, 1.4])
     
     all_raw_tiers = list(pred_df["mule_tier"].unique())
     tier_disp_map = {translate_tier(t, lang): t for t in all_raw_tiers}
@@ -519,7 +526,21 @@ with tab_queue:
         q_status_filter = st.selectbox("สถานะงาน" if lang == "th" else "Workflow Status", options=status_opts, index=0)
 
     with q_col4:
-        q_search = st.text_input("ค้นหาเลขที่บัญชี" if lang == "th" else "Search Account ID", placeholder="A009852")
+        sort_opts = [
+            "คะแนน: สูง ➔ ต่ำ",
+            "คะแนน: ต่ำ ➔ สูง",
+            "วันที่: ใหม่ ➔ เก่า",
+            "วันที่: เก่า ➔ ใหม่"
+        ] if lang == "th" else [
+            "Score: High ➔ Low",
+            "Score: Low ➔ High",
+            "Date: Newest ➔ Oldest",
+            "Date: Oldest ➔ Newest"
+        ]
+        q_sort = st.selectbox("เรียงลำดับตาม" if lang == "th" else "Sort By", options=sort_opts, index=0)
+
+    with q_col5:
+        q_search = st.text_input("ค้นหาเลขบัญชี" if lang == "th" else "Search Account ID", placeholder="A009852")
 
     # Map audit history
     audit_history_df = get_audit_history(limit=500)
@@ -545,7 +566,15 @@ with tab_queue:
     if q_search.strip():
         q_df = q_df[q_df["account"].str.contains(q_search.strip(), case=False)]
 
-    q_df = q_df.sort_values("risk_score", ascending=False)
+    # Apply user-selected sorting
+    if "สูง ➔ ต่ำ" in q_sort or "High ➔ Low" in q_sort:
+        q_df = q_df.sort_values("risk_score", ascending=False)
+    elif "ต่ำ ➔ สูง" in q_sort or "Low ➔ High" in q_sort:
+        q_df = q_df.sort_values("risk_score", ascending=True)
+    elif "ใหม่ ➔ เก่า" in q_sort or "Newest" in q_sort:
+        q_df = q_df.sort_values("last_active_date", ascending=False)
+    elif "เก่า ➔ ใหม่" in q_sort or "Oldest" in q_sort:
+        q_df = q_df.sort_values("last_active_date", ascending=True)
     
     # Display row limit control
     lim_c1, lim_c2 = st.columns([3, 1])
@@ -557,6 +586,7 @@ with tab_queue:
     view_sub = q_df.head(n_show).copy()
     view_sub["disp_tier"] = view_sub["mule_tier"].apply(lambda x: translate_tier(x, lang))
     view_sub["risk_score"] = view_sub["risk_score"].round(1)
+    view_sub["last_active_str"] = pd.to_datetime(view_sub["last_active_date"]).dt.strftime("%Y-%m-%d %H:%M").fillna("-")
     
     pending_txt = "รอตรวจสอบ" if lang == "th" else "Pending Review"
     view_sub["audit_status"] = view_sub["account"].apply(lambda acc: audit_map.get(acc, pending_txt))
@@ -568,14 +598,16 @@ with tab_queue:
                 "account": "เลขที่บัญชี",
                 "disp_tier": "ระดับความเสี่ยง",
                 "risk_score": "คะแนนความเสี่ยง (0-100)",
+                "last_active_str": "ทำรายการล่าสุด",
                 "audit_status": "สถานะการตรวจสอบ"
             }
         else:
-            st.caption(f"Found **{len(q_df):,}** accounts (Displaying **{len(view_sub):,}** accounts by risk score)")
+            st.caption(f"Found **{len(q_df):,}** accounts (Displaying **{len(view_sub):,}** accounts)")
             cols_rename = {
                 "account": "Account ID",
                 "disp_tier": "Risk Classification",
                 "risk_score": "Risk Score (0-100)",
+                "last_active_str": "Last Active Date",
                 "audit_status": "Review Status"
             }
         
