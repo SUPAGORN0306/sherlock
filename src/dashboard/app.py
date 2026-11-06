@@ -529,20 +529,29 @@ with tab_queue:
     with q_col4:
         q_search = st.text_input("ค้นหาเลขที่บัญชี" if lang == "th" else "Search Account ID", placeholder="A009852")
 
-    # แถวที่ 2: ดรอปดาวน์แยก 2 อันชัดเจน: เรียงตามวันที่ทำรายการ และ เรียงตามคะแนนความเสี่ยง
-    s_col1, s_col2, s_col3 = st.columns([2.0, 2.0, 1.5])
+    # แถวที่ 2: การจัดเรียงและจำนวนที่แสดง (เลือกเงื่อนไขหลักเพียงอย่างเดียวเพื่อไม่ให้เงื่อนไขขัดแย้งกัน)
+    s_col1, s_col2, s_col3 = st.columns([2.5, 1.5, 3.0])
     
     with s_col1:
-        date_sort_opts = ["ไม่จัดเรียง", "ล่าสุดไปเก่าสุด", "เก่าสุดไปล่าสุด"] if lang == "th" else ["None", "Newest First", "Oldest First"]
-        sel_date_sort = st.selectbox("เรียงตามวันที่ทำรายการ" if lang == "th" else "Sort by Transaction Date", options=date_sort_opts, index=0)
+        sort_opts = [
+            "คะแนนความเสี่ยง (จากมากไปน้อย)",
+            "คะแนนความเสี่ยง (จากน้อยไปมาก)",
+            "วันที่ทำรายการล่าสุด (ใหม่ไปเก่า)",
+            "วันที่ทำรายการล่าสุด (เก่าไปใหม่)"
+        ] if lang == "th" else [
+            "Risk Score: Highest First",
+            "Risk Score: Lowest First",
+            "Last Active Date: Newest First",
+            "Last Active Date: Oldest First"
+        ]
+        sel_sort = st.selectbox("จัดเรียงลำดับตาม" if lang == "th" else "Sort By", options=sort_opts, index=0)
 
     with s_col2:
-        score_sort_opts = ["จากมากไปน้อย", "จากน้อยไปมาก", "ไม่จัดเรียง"] if lang == "th" else ["Highest First", "Lowest First", "None"]
-        sel_score_sort = st.selectbox("เรียงตามคะแนนความเสี่ยง" if lang == "th" else "Sort by Risk Score", options=score_sort_opts, index=0)
-
-    with s_col3:
         row_limit_opts = [50, 100, 200, 500, "ทั้งหมด (All)"] if lang == "th" else [50, 100, 200, 500, "All"]
         sel_row_limit = st.selectbox("จำนวนรายการที่แสดง" if lang == "th" else "Display Limit", options=row_limit_opts, index=0)
+
+    with s_col3:
+        st.write("")  # Alignment spacer
 
     # Map audit history
     audit_history_df = get_audit_history(limit=500)
@@ -568,32 +577,17 @@ with tab_queue:
     if q_search.strip():
         q_df = q_df[q_df["account"].str.contains(q_search.strip(), case=False)]
 
-    # คำนวณลำดับการเรียง: ตรวจสอบทั้ง 2 ดรอปดาวน์
-    sort_cols = []
-    sort_asc = []
-    
-    # 1. เรียงตามวันที่ทำรายการ
-    if "ล่าสุด" in sel_date_sort or "Newest" in sel_date_sort:
-        sort_cols.append("last_active_date")
-        sort_asc.append(False)
-    elif "เก่าสุด" in sel_date_sort or "Oldest" in sel_date_sort:
-        sort_cols.append("last_active_date")
-        sort_asc.append(True)
-        
-    # 2. เรียงตามคะแนนความเสี่ยง
-    if "มากไปน้อย" in sel_score_sort or "Highest" in sel_score_sort:
-        sort_cols.append("risk_score")
-        sort_asc.append(False)
-    elif "น้อยไปมาก" in sel_score_sort or "Lowest" in sel_score_sort:
-        sort_cols.append("risk_score")
-        sort_asc.append(True)
-        
-    # ค่าเริ่มต้นกรณีเลือก 'ไม่จัดเรียง' ทั้งคู่
-    if not sort_cols:
-        sort_cols = ["risk_score"]
-        sort_asc = [False]
-        
-    q_df = q_df.sort_values(by=sort_cols, ascending=sort_asc)
+    # จัดเรียงตามเงื่อนไขที่เลือกเพียงหนึ่งเดียว
+    if "มากไปน้อย" in sel_sort or "Highest" in sel_sort:
+        q_df = q_df.sort_values("risk_score", ascending=False)
+    elif "น้อยไปมาก" in sel_sort or "Lowest" in sel_sort:
+        q_df = q_df.sort_values("risk_score", ascending=True)
+    elif "ใหม่ไปเก่า" in sel_sort or "Newest" in sel_sort:
+        q_df = q_df.sort_values("last_active_date", ascending=False)
+    elif "เก่าไปใหม่" in sel_sort or "Oldest" in sel_sort:
+        q_df = q_df.sort_values("last_active_date", ascending=True)
+    else:
+        q_df = q_df.sort_values("risk_score", ascending=False)
     n_show = len(q_df) if ("All" in str(sel_row_limit) or "ทั้งหมด" in str(sel_row_limit)) else int(sel_row_limit)
     view_sub = q_df.head(n_show).copy()
     view_sub["disp_tier"] = view_sub["mule_tier"].apply(lambda x: translate_tier(x, lang))
