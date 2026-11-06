@@ -1,92 +1,123 @@
-# Sherlock: Mule Account Risk & Financial Crime Intelligence Workbench
+# Sherlock: ระบบตรวจจับบัญชีม้าและสนับสนุนการตัดสินใจสกัดกั้นอาชญากรรมทางการเงิน
+**Mule Account Risk & Financial Crime Intelligence Workbench**
 
-Enterprise-grade Financial Fraud & Mule Account Detection Decision Support System compliant with:
-- **Bank of Thailand (BOT)** 5-Tier Mule Risk Classification Framework
-- **Anti-Technology Crime Decree B.E. 2566 (พ.ร.ก. 2566)** Section 6 (72-Hour Freeze) & Section 9 (3-Year Penalty)
-- **AMLO STR Form 1-03** Reporting Standards
-
----
-
-## 1. System Overview
-
-**Sherlock** is an end-to-end intelligence platform built for financial institutions and central bank analysts to proactively detect, triage, investigate, and legally action suspicious mule accounts. It bridges advanced Machine Learning (Graph Neural Networks + Gradient Boosting) with legal compliance and Human-in-the-Loop decision governance.
-
-```
-+---------------------------------------------------------------------------------------------+
-|                                    SHERLOCK WORKBENCH                                       |
-+---------------------------------------------------------------------------------------------+
-|                                                                                             |
-|   [ Tab 1: Executive Overview ]   ---> Real-time KPIs, 5-tier distribution, night surges    |
-|   [ Tab 2: Triage Queue ]         ---> Unified sorting by risk score / date, audit status   |
-|   [ Tab 3: Deep Investigation ]   ---> Ego-network graph, 3 behavioral cards, AI Copilot    |
-|   [ Tab 4: AMLO Form 1-03 ]       ---> Official STR document generator, 1-click PDF print   |
-|   [ Tab 5: Tamper-Evident Audit ] ---> SHA-256 hash-chained immutable officer audit trail    |
-|                                                                                             |
-+---------------------------------------------------------------------------------------------+
-```
+ระบบตรวจจับ วิเคราะห์เส้นทางเงิน และสนับสนุนการตัดสินใจสั่งการสำหรับเจ้าหน้าที่ธนาคารและหน่วยงานกำกับดูแล ออกแบบตามเกณฑ์มาตรฐานของ:
+- **ธนาคารแห่งประเทศไทย (ธปท.)** — แนวทางการจัดระดับความเสี่ยงบัญชีม้า 5 ระดับ
+- **พระราชกำหนดมาตรการป้องกันและปราบปรามอาชญากรรมทางเทคโนโลยี พ.ศ. 2566** — มาตรา 6 (การระงับธุรกรรมชั่วคราว 72 ชั่วโมง) และมาตรา 9 (บทลงโทษผู้เปิดหรือยินยอมให้ใช้บัญชีม้า)
+- **สำนักงานป้องกันและปราบปรามการฟอกเงิน (ปปง.)** — มาตรฐานแบบรายงานธุรกรรมที่มีเหตุอันควรสงสัย (แบบ ปปง. 1-03)
 
 ---
 
-## 2. Regulatory Alignment: BOT 5-Tier Framework
+## 1. ที่มาและความสำคัญของโครงการ (Background & Motivation)
 
-Sherlock calibrates a single **Risk Score (0–100)** and combines it with legal evidence proxies into the Bank of Thailand's 5-tier taxonomy:
+ในปัจจุบัน ปัญหาอาชญากรรมทางเทคโนโลยี แก๊งคอลเซ็นเตอร์ และการหลอกลวงออนไลน์ สร้างความเสียหายแก่ระบบเศรษฐกิจและประชาชนไทยหลายหมื่นล้านบาทต่อปี โดยกลไกสำคัญที่สุดที่คนร้ายใช้ในการยักย้ายถ่ายเทและฟอกเงิน คือ **"บัญชีม้า" (Mule Accounts)** ซึ่งถูกใช้เป็นทอด ๆ เพื่อตัดตอนเส้นทางการสืบสวนของเจ้าหน้าที่
 
-| ระดับความเสี่ยง (Risk Tier) | ช่วงคะแนน (Score) | ที่มาในระบบจริง (Data Source / Proxy) | มาตรการตอบสนอง (Officer Action) |
+ธนาคารแห่งประเทศไทย (ธปท.) ร่วมกับสมาคมธนาคารไทย และสำนักงาน ปปง. จึงได้กำหนดแนวทางยกระดับการจัดการบัญชีม้า จากเดิมที่เป็นการ **"ตั้งรับ"** (รอรับแจ้งความจากผู้เสียหาย หรือรอรายชื่อบัญชีดำจาก ปปง.) เปลี่ยนมาเป็นการ **"ตรวจจับเชิงรุก" (Proactive Detection)** โดยใช้เทคโนโลยีปัญญาประดิษฐ์เข้ามาวิเคราะห์พฤติกรรมผิดปกติและโครงข่ายเส้นเงิน เพื่อตรวจจับบัญชีม้าตั้งแต่ระยะเริ่มต้น (Early Warning) และสกัดกั้นเงินของผู้เสียหายให้ทันท่วงที
+
+ระบบ **Sherlock** ถูกพัฒนาขึ้นเพื่อเป็นเครื่องมืออัจฉริยะ (Workbench) ประจำโต๊ะทำงานของเจ้าหน้าที่วิเคราะห์การทุจริต (Fraud Analyst) โดยผสานพลังระหว่าง:
+1. **Machine Learning & Graph Neural Networks:** ประเมินคะแนนความเสี่ยงเชิงพฤติกรรมและโครงข่ายเส้นเงิน
+2. **Human-in-the-Loop Governance:** ให้เจ้าหน้าที่ผู้เชี่ยวชาญเป็นผู้ตัดสินใจสั่งการขั้นสุดท้าย โดยมี AI Copilot ช่วยสรุปข้อกฎหมายและแนวทางสืบสวน
+3. **Victim Protection Protocol:** ระบบแยกแยะระหว่าง "ม้าตัวจริง" กับ "เหยื่อผู้บริสุทธิ์ที่ถูกหลอกโอนเงิน" เพื่อป้องกันการระงับบัญชีประชาชนโดยไม่เป็นธรรม
+
+---
+
+## 2. การจัดระดับความเสี่ยงบัญชีม้า 5 ระดับ และมาตรการตอบสนอง
+
+ระบบแปลงคะแนนความเสี่ยงที่ได้จากโมเดล (Risk Score 0–100) ร่วมกับข้อมูลหลักฐานเชิงคดี เข้าสู่เกณฑ์มาตรฐาน 5 ระดับของ ธปท. ดังนี้:
+
+| ระดับความเสี่ยง | ช่วงคะแนน | ที่มาในระบบจริง | มาตรการตอบสนอง |
 | :--- | :---: | :--- | :--- |
-| **ม้าดำ (Black Mule)** | $\ge$ 80 | รายชื่อบัญชีดำ ปปง. (AMLO HR-03) | อายัดถาวร และปิดบัญชีทุกธนาคาร |
-| **ม้าเทาเข้ม (Dark Grey)** | 70 – 79.9 | มีใบแจ้งความดำเนินคดีอาญา | ระงับทันที และแกะรอยเส้นเงินต่อ |
-| **ม้าเทาอ่อน (Light Grey)** | 50 – 69.9 | เส้นเงินเชื่อมต่อจากม้าเทาเข้ม (ทอดถัดไป) | ระงับธุรกรรมช่องทางอิเล็กทรอนิกส์ |
-| **ม้าน้ำตาลเข้ม (Dark Brown)** | 35 – 49.9 | ระบบตรวจจับเชิงรุก (พฤติกรรมเสี่ยงสูง) | ระงับชั่วคราว 72 ชม. ให้เจ้าหน้าที่ตรวจ (พ.ร.ก. ม.6) |
-| **ม้าน้ำตาลอ่อน (Light Brown)** | 20 – 34.9 | ระบบตรวจจับเชิงรุก (พฤติกรรมเริ่มผิดปกติ) | เพิ่มความเข้มงวด สแกนใบหน้า ลดเพดานวงเงินโอน |
-| **บัญชีปกติ (Normal)** | < 20 | พฤติกรรมทั่วไป | ใช้งานได้ตามปกติ |
+| **ม้าดำ** | มากกว่า 80 | รายชื่อบัญชีดำ ปปง. | อายัดถาวร และปิดบัญชีทุกธนาคาร |
+| **ม้าเทาเข้ม** | 70 - 100 | มีใบแจ้งความ | ระงับทันที และแกะรอยเส้นเงินต่อ |
+| **ม้าเทาอ่อน** | 50 - 69.9 | เส้นเงินเชื่อมต่อจากม้าเทาเข้ม | ระงับธุรกรรมช่องทางอิเล็กทรอนิกส์ |
+| **ม้าน้ำตาลเข้ม** | 35 - 49.9 | ตรวจจับล่วงหน้าด้วยระบบ | ระงับชั่วคราว 72 ชม. ให้เจ้าหน้าที่ตรวจสอบ |
+| **ม้าน้ำตาลอ่อน** | 20 - 34.9 | ตรวจจับล่วงหน้าด้วยระบบ | เพิ่มความเข้มงวด บังคับสแกนใบหน้า ลดเพดานวงเงินโอน |
+| **บัญชีปกติ** | น้อยกว่า 20 | พฤติกรรมทั่วไป | ใช้งานได้ตามปกติ |
 
-> **หมายเหตุ:** ในโมเดลทดสอบยังไม่มีฐานข้อมูลคดีจริงจากตำรวจ ระบบใช้ Proxy Mapping จากคะแนนโมเดลร่วมกับสถานะประวัติธุรกรรมฟอกเงินเดิม (`is_mule`) เพื่อจำลองการตัดเกรด 5 ระดับอย่างสมจริง
+> **หมายเหตุ :** ในโมเดลทดสอบยังไม่มีฐานข้อมูลคดีจริง ระบบแปลงข้อมูล คะแนน 1-100 เข้าสู่ 5 ระดับนี้อัตโนมัติ โดยในกรณีของ **ม้าเทาเข้ม** ที่มีช่วงคะแนนครอบคลุมตั้งแต่ 70 ถึง 100 นั้น เกิดจากกรณีที่โมเดลตรวจพบพฤติกรรมความผิดปกติในระดับสูงมาก แต่บัญชีดังกล่าวยังไม่มีประวัติถูกจับกุมหรือยังไม่มีชื่อยืนยันในบัญชีดำ ปปง. ระบบจึงจัดให้อยู่ในกลุ่มม้าเทาเข้มเพื่อให้เจ้าหน้าที่ระงับธุรกรรมทันทีและส่งเรื่องสืบสวนต่อ
 
 ---
 
-## 3. Model Architecture & Benchmark
+## 3. ผังและขั้นตอนการทำงานของแดชบอร์ด (Dashboard Workflow)
 
-Sherlock utilizes a **Dual-Architecture Hybrid Ensemble** combining tabular behavioral features with relational graph topology:
+การทำงานของเจ้าหน้าที่บนระบบ Sherlock แบ่งออกเป็น 3 ขั้นตอนหลักอย่างเป็นระบบ:
 
-1. **Baseline Model: XGBoost (40% Weight)**
-   - Captures tabular typologies: Rapid pass-through, structuring, balance exhaustion within 48h, late-night transaction ratio, 30-day velocity drift, and entity demographics.
-2. **Champion Model: GraphSAGE (60% Weight)**
-   - PyTorch Geometric 2-layer inductive GNN with mean aggregation and feature concatenation.
-   - Accurately captures multi-hop money laundering chains and 90.4% heterophilic graph structures without over-smoothing.
+```text
+       [ เริ่มต้น (Start) ]
+                │
+                ▼
+┌───────────────────────────────────────────┐
+│ 1. คัดกรองและจัดลำดับคดี (Triage Queue)   │
+│ • กรองบัญชีตามระดับความเสี่ยง 5 ระดับ    │
+│ • เรียงลำดับตามคะแนนความเสี่ยง (ML Score) │
+│ • กดปุ่ม "เปิดแฟ้มคดีนี้" เพื่อเริ่มตรวจ  │
+└───────────────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────────────┐
+│ 2. ตรวจสอบพฤติกรรมและเครือข่ายเชิงลึก     │
+│ • สำรวจผังเส้นทางเงิน (Ego-Network Graph) │
+│ • วิเคราะห์ 3 มิติพฤติกรรมและ Statement    │
+│ • สรุปคดีและตรวจสอบข้อกฎหมายผ่าน Copilot  │
+└───────────────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────────────┐
+│ 3. ตัดสินใจสั่งการและบันทึกผล (Actions)    │
+│ • เลือกมาตรการ: ปกติ / เฝ้าระวัง / 72 ชม. │
+│ • สร้างแบบรายงาน ปปง. 1-03 ส่งออก PDF     │
+│ • บันทึกประวัติลง Audit Trail (SHA-256)   │
+└───────────────────────────────────────────┘
+```
 
-### Evaluation on Strictly Unseen Test Set (10% Split, 4,417 Nodes)
+### โครงสร้างหน้าจอแดชบอร์ด 5 แท็บ:
+* **แท็บ 1: Executive Overview (ภาพรวมผู้บริหาร)** — แสดงตัวชี้วัดสำคัญ (KPIs), สถิติการกระจายตัวของม้า 5 ระดับ, แนวโน้มมูลค่าฟอกเงินรายสัปดาห์ และพฤติกรรมโอนเงินช่วงวิกาล
+* **แท็บ 2: Case Triage Queue (คิวงานคัดกรอง)** — ตารางจัดลำดับคดีความเสี่ยงสูง กรองตามช่วงคะแนน สถานะงาน และจัดเรียงลำดับได้อย่างอิสระ
+* **แท็บ 3: Deep Investigation (ห้องสืบสวนคดี)** — กราฟเส้นเงินแบบมีทิศทาง (Interactive Ego-Network), การวิเคราะห์พฤติกรรมการหมุนเวียนเงิน และระบบผู้ช่วยสอบสวน AI Copilot
+* **แท็บ 4: AMLO Form 1-03 (แบบรายงาน ปปง. 1-03)** — สร้างรายงานธุรกรรมที่มีเหตุอันควรสงสัยตามแบบฟอร์มราชการ พร้อมสั่งพิมพ์ PDF ในคลิกเดียว
+* **แท็บ 5: Tamper-Evident Audit Trail (ประวัติการสั่งการ)** — ตารางตรวจสอบย้อนหลังทุกคำสั่งการของเจ้าหน้าที่ ผูกโยงด้วยระบบ Cryptographic Hash ป้องกันการแก้ไขย้อนหลัง
 
-| Metric | XGBoost | GraphSAGE | Hybrid Ensemble (Sherlock) | Business Impact |
+---
+
+## 4. สถาปัตยกรรมโมเดลและการวัดผล (Model Architecture & Benchmark)
+
+ระบบเลือกใช้สถาปัตยกรรมโมเดลแบบคู่ผสม (Dual-Architecture Hybrid Ensemble) เพื่อดึงจุดเด่นของทั้งข้อมูลตารางและข้อมูลโครงข่าย:
+1. **XGBoost (น้ำหนัก 40%):** ดักจับพฤติกรรมธุรกรรมเดี่ยว เช่น การโอนเงินเข้าแล้วรีบโอนออกทันที (Rapid Pass-through), การซอยยอดเงิน (Smurfing/Structuring), การถอนเงินหมดเกลี้ยงใน 48 ชม., และการโอนเงินผิดปกติตอนดึก
+2. **GraphSAGE (น้ำหนัก 60%):** โครงข่ายประสาทเทียมแบบกราฟ (Graph Neural Network) ความลึก 2 ชั้น ทำหน้าที่รวมรวมพฤติกรรมจากเพื่อนบ้านในเครือข่าย สามารถตรวจจับการฟอกเงินแบบหลายทอด (Multi-hop Layering) ได้แม่นยำ แม้เครือข่ายจะมีลักษณะ Heterophily สูงถึง 90.4% ก็ตาม
+
+### ผลการทดสอบบนชุดข้อมูลทดสอบที่ไม่เคยเห็นมาก่อน (Unseen Test Set: 4,417 บัญชี)
+
+| ตัววัดประสิทธิภาพ (Metric) | โมเดล XGBoost | โมเดล GraphSAGE | โมเดลผสม Sherlock (Ensemble) | ผลกระทบต่อการใช้งานจริง |
 | :--- | :---: | :---: | :---: | :--- |
-| **Precision@100** | 100.0% | 99.0% | **100.0%** | 100 เคสแรกที่ส่งให้เจ้าหน้าที่ตรวจ เป็นม้าจริงครบ 100% |
-| **Precision** | 93.92% | 86.83% | **93.63%** | ความแม่นยำสูง ไม่รบกวนหรืออายัดบัญชีผู้บริสุทธิ์ |
-| **Recall** | 82.50% | 86.19% | **89.32%** | ดักจับบัญชีม้าได้เกือบ 90% ของม้าทั้งหมด |
-| **F1-Score** | 87.84% | 86.51% | **91.42%** | ความสมดุลสูงสุดระหว่าง Precision และ Recall |
-| **PR-AUC** | 89.83% | 91.69% | **93.60%** | ตัวชี้วัดหลักสำหรับข้อมูล Imbalanced Fraud |
-| **ROC-AUC** | 95.46% | 96.20% | **97.31%** | ความสามารถในการแยกคนดีออกจากคนร้าย |
+| **Precision@100** | 100.0% | 99.0% | **100.0%** | **100 บัญชีแรกที่ระบบส่งให้ตรวจ เป็นม้าจริงครบ 100% ไม่เสียเวลาเจ้าหน้าที่** |
+| **Precision** | 93.92% | 86.83% | **93.63%** | ความแม่นยำสูง ชี้เป้าแม่นยำ แทบไม่รบกวนบัญชีผู้บริสุทธิ์ |
+| **Recall** | 82.50% | 86.19% | **89.32%** | ความครอบคลุม ดักจับบัญชีม้าได้เกือบ 90% ของม้าทั้งหมด |
+| **F1-Score** | 87.84% | 86.51% | **91.42%** | ความสมดุลสูงสุดระหว่างการจับคนร้ายและการคุ้มครองคนดี |
+| **PR-AUC** | 89.83% | 91.69% | **93.60%** | ดัชนีภาพรวมที่ดีที่สุดสำหรับข้อมูลทุจริตที่มีความไม่สมดุลสูง |
+| **ROC-AUC** | 95.46% | 96.20% | **97.31%** | ความสามารถในการแยกแยะคนปกติออกจากม้าฟอกเงิน |
 
 ---
 
-## 4. Project Directory Structure
+## 5. โครงสร้างโฟลเดอร์ของโปรเจกต์ (Project Directory Structure)
 
 ```text
 sherlock/
-├── .gitignore                   # Ignore caches, DB locks, and virtual environments
-├── README.md                    # Project documentation & reference manual
-├── requirements.txt             # Dashboard & ML training dependencies
-├── run_dashboard.sh             # One-click dashboard startup script
+├── .gitignore                   # ตัดไฟล์แคชและฐานข้อมูลทดสอบออกจาก Git
+├── README.md                    # คู่มือและเอกสารอธิบายระบบฉบับสมบูรณ์
+├── requirements.txt             # รายการไลบรารีที่จำเป็นสำหรับแดชบอร์ดและโมเดล
+├── run_dashboard.sh             # สคริปต์เปิดรันแดชบอร์ด
 │
-├── configs/                     # System & pipeline configurations
-│   └── split.yaml               # Strict temporal split timestamp (train_end: 2025-11-25)
+├── configs/                     # โฟลเดอร์ตั้งค่าระบบ
+│   └── split.yaml               # กำหนดวันตัดแบ่งข้อมูล (train_end: 2025-11-25)
 │
-├── data/                        # Tiered data store
-│   ├── raw/                     # Raw datasets (tx.csv, person.csv, merchant.csv)
-│   └── processed/               # Cleaned & feature-engineered artifacts
-│       ├── predictions.parquet  # Risk scores, 5-tier classification & model probabilities
-│       ├── model_benchmark.json # Persisted evaluation metrics across splits
-│       └── audit_trail_v2.db    # Tamper-evident SQLite database with SHA-256 hash chains
+├── data/                        # การจัดเก็บข้อมูลแยกชั้นชัดเจน
+│   ├── raw/                     # ข้อมูลดิบตั้งต้น (tx.csv, person.csv, merchant.csv)
+│   └── processed/               # ข้อมูลที่ผ่านการคลีนและสร้างฟีเจอร์แล้ว
+│       ├── predictions.parquet  # ผลทำนายความเสี่ยงและระดับ 5 สีของทุกบัญชี
+│       ├── model_benchmark.json # ข้อมูลบันทึกผลการทดสอบความแม่นยำ
+│       └── audit_trail_v2.db    # ฐานข้อมูลบันทึกประวัติการตัดสินใจของเจ้าหน้าที่
 │
-├── eda/                         # Exploratory data analysis scripts & research reports
+├── eda/                         # งานสำรวจข้อมูลเชิงลึกและรายงานประกอบ
 │   ├── 01_overview_and_behavioral_eda.py
 │   ├── 02_graph_and_entity_eda.py
 │   ├── deep_temporal_eda.py
@@ -95,62 +126,61 @@ sherlock/
 │   ├── TEMPORAL_EDA_INSIGHTS.md
 │   └── 03_GRAPH_DIAGNOSTICS_REPORT.md
 │
-├── models/                      # Trained model weights
-│   └── graphsage.pt             # PyTorch Geometric GraphSAGE checkpoint
+├── models/                      # ที่เก็บไฟล์น้ำหนักโมเดล
+│   └── graphsage.pt             # น้ำหนักโมเดล PyTorch Geometric GraphSAGE
 │
-├── scripts/                     # Standalone verification & evaluation scripts
-│   ├── eval_test_set.py         # Test set evaluator
-│   └── eval_hybrid.py           # Ensemble weight tuning script
+├── scripts/                     # สคริปต์อำนวยความสะดวกและทดสอบเฉพาะกิจ
+│   ├── eval_test_set.py         # คำนวณ Benchmark บน Unseen Test Set
+│   └── eval_hybrid.py           # ทดสอบจูนค่าน้ำหนัก Ensemble
 │
-└── src/                         # Core modular source code
-    ├── data/                    # Ingestion & cleaning
+└── src/                         # ซอร์สโค้ดหลักของระบบ (Modular Architecture)
+    ├── data/                    # การทำความสะอาดและตัดแบ่งชุดข้อมูล
     │   ├── cleaner.py
     │   └── splitter.py
-    ├── features/                # AML typology & behavioral feature engineering
+    ├── features/                # การสร้างตัวแปรพฤติกรรมและกฎ AML
     │   └── build_features.py
-    ├── models/                  # ML & GNN model definitions & training
+    ├── models/                  # การเทรนและประเมินผลโมเดล AI
     │   ├── train_models.py
     │   └── graph_diagnostics.py
-    └── dashboard/               # Streamlit workbench & intelligence UI
-        ├── app.py               # Main 5-tab application
-        ├── narrative.py         # Automated bilingual case narrative generator
-        ├── copilot_rag.py       # Legal & investigation AI Copilot
-        ├── graph_viz.py         # Interactive Ego-network Pyvis renderer
-        ├── audit_log.py         # Tamper-evident audit trail engine
-        └── i18n.py              # Bilingual localization (TH/EN)
+    └── dashboard/               # ระบบหน้าบ้านแดชบอร์ดและ Copilot
+        ├── app.py               # แอปพลิเคชันแดชบอร์ดหลัก 5 แท็บ
+        ├── narrative.py         # ตัวสรุปพฤติกรรมเคสอัตโนมัติ (ไทย-อังกฤษ)
+        ├── copilot_rag.py       # ระบบตอบคำถามข้อกฎหมายและสืบสวนด้วย AI
+        ├── graph_viz.py         # ตัวเรนเดอร์ผังเส้นเงินแบบโต้ตอบ (Pyvis)
+        ├── audit_log.py         # ระบบบันทึกประวัติการสั่งการ (Tamper-evident Audit)
+        └── i18n.py              # ตัวจัดการระบบ 2 ภาษา (Bilingual Engine)
 ```
 
 ---
 
-## 5. Quick Start
+## 6. วิธีการติดตั้งและเริ่มต้นใช้งาน (Installation & Quick Start)
 
-### 1. Environment Setup
+### 1. การเตรียมสภาพแวดล้อมและติดตั้งไลบรารี
 ```bash
-# Clone the repository
+# โคลนโปรเจกต์จาก GitHub
 git clone https://github.com/SUPAGORN0306/sherlock.git
 cd sherlock
 
-# Install dependencies
+# ติดตั้งแพ็กเกจที่จำเป็น
 pip install -r requirements.txt
 ```
 
-### 2. Run the Dashboard
+### 2. การเปิดใช้งานแดชบอร์ด
 ```bash
 streamlit run src/dashboard/app.py
 ```
-Open your browser and navigate to `http://localhost:8501`.
+เปิดเว็บบราวเซอร์แล้วไปที่ `http://localhost:8501`
 
-### 3. Re-train Models (Optional)
+### 3. การรันไปป์ไลน์สร้างฟีเจอร์และเทรนโมเดลใหม่ (กรณีต้องการเทรนซ้ำ)
 ```bash
 python src/features/build_features.py
 python src/models/train_models.py
 ```
-Outputs will update `data/processed/predictions.parquet` and `data/processed/model_benchmark.json`.
 
 ---
 
-## 6. Key Governance & Security Features
-- **Zero Temporal Data Leakage:** Features and graph structures are constructed strictly from transactions on or before `2025-11-25`.
-- **Tamper-Evident Audit Trail:** Every officer action (Normal, Watchlist, 72h Freeze) is stored with SHA-256 cryptographic linkage to the preceding log entry.
-- **Victim Protection Protocol:** Counterparty risk scoring differentiates innocent fraud victims from willing money mules, preventing unfair account freezing.
-- **Full Bilingual Localization:** Seamless one-click toggle between Thai and English across all UI labels, narratives, tooltips, and AMLO forms.
+## 7. จุดเด่นด้านธรรมาภิบาลและความปลอดภัย (Governance & Security)
+- **การป้องกันข้อมูลรั่วไหลข้ามเวลา (Zero Data Leakage):** ตัวแปรและเส้นกราฟทั้งหมดถูกสร้างขึ้นจากธุรกรรมที่เกิดขึ้นภายในวันที่ `2025-11-25` เท่านั้น เพื่อจำลองสถานการณ์จริงที่ระบบไม่สามารถรู้อนาคตได้
+- **ระบบบันทึกประวัติที่ตรวจสอบได้ (Tamper-Evident Audit Trail):** ทุกการกดสั่งการของเจ้าหน้าที่ (ปกติ, เฝ้าระวัง, ระงับ 72 ชม.) จะถูกบันทึกรหัสแฮช SHA-256 ผูกโยงกับแถวก่อนหน้า เพื่อป้องกันการปลอมแปลงหรือลบประวัติย้อนหลัง
+- **ระบบคุ้มครองผู้เสียหาย (Victim Protection Protocol):** ระบบตรวจสอบบัญชีคู่สัญญา เพื่อแยกแยะบุคคลที่ถูกหลอกโอนเงินออกจากขบวนการฟอกเงิน ช่วยลดความผิดพลาดในการอายัดบัญชีประชาชนผู้บริสุทธิ์
+- **รองรับ 2 ภาษาเต็มรูปแบบ (100% Bilingual):** สามารถสลับภาษาการใช้งานระหว่างภาษาไทยและภาษาอังกฤษได้ทันที ทั้งหน้าจอ กราฟ บทวิเคราะห์คดี และแบบฟอร์ม ปปง.
