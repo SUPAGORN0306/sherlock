@@ -675,17 +675,38 @@ with tab_case:
     current_risk = narrative_res["risk_score"]
     last_decision = get_account_last_action(active_acc)
     
-    # Header Banner
-    hc1, hc2, hc3 = st.columns([2.2, 2.5, 2.3])
+    # Header Banner: Clearly display Human Decision override vs Raw AI Risk Score
+    hc1, hc2, hc3 = st.columns([2.4, 2.2, 2.4])
     with hc1:
         st.markdown(f"#### {'บัญชีเป้าหมาย' if lang == 'th' else 'Target Account'}: `{active_acc}`")
-        st.markdown(f"**{'ระดับความเสี่ยง' if lang == 'th' else 'Classification'}:** {disp_tier}")
+        if last_decision:
+            act_code = last_decision.get("action_code", "")
+            if act_code == "DISMISS_NORMAL":
+                disp_badge = "สถานะ: บัญชีปกติ / ยุติเรื่อง" if lang == "th" else "Status: Dismissed (Normal)"
+                st.markdown(f"**<span style='color: #22C55E; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
+                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+            elif act_code == "FREEZE_AMLO_STR":
+                disp_badge = "สถานะ: ระงับบัญชี 72 ชม. และส่ง ปปง." if lang == "th" else "Status: 72h Freeze & AMLO STR"
+                st.markdown(f"**<span style='color: #EF4444; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
+                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+            elif act_code == "WATCHLIST_EDD":
+                disp_badge = "สถานะ: เฝ้าระวังเข้มงวด / จำกัดวงเงิน" if lang == "th" else "Status: Watchlist (EDD)"
+                st.markdown(f"**<span style='color: #F59E0B; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
+                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+            else:
+                st.markdown(f"**{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Tier'}:** {disp_tier}")
+        else:
+            st.markdown(f"**{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Tier'}:** {disp_tier}")
+            
     with hc2:
-        st.markdown(f"**{'คะแนนความเสี่ยง' if lang == 'th' else 'Risk Score'}:** `{current_risk:.1f} / 100`")
+        st.markdown(f"**{'คะแนนความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Score'}:** `{current_risk:.1f} / 100`")
         st.progress(min(max(current_risk / 100.0, 0.0), 1.0))
+        
     with hc3:
         if last_decision:
-            st.info(f"**{'คำสั่งล่าสุด' if lang == 'th' else 'Last Action'}:** {translate_action(last_decision['action_code'], lang)} ({last_decision['timestamp'][:16]})")
+            officer_disp = last_decision.get('officer_name', officer_name)
+            time_disp = last_decision['timestamp'][:16]
+            st.success(f"**{'ผลการพิจารณาโดย' if lang == 'th' else 'Reviewed by'}:** {officer_disp}\n\n**{'คำสั่ง' if lang == 'th' else 'Order'}:** {translate_action(last_decision['action_code'], lang)} ({time_disp})")
         else:
             st.warning("สถานะ: รอการพิจารณาจากเจ้าหน้าที่" if lang == "th" else "Status: Pending Officer Review")
 
