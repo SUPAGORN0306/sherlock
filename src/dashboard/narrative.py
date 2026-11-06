@@ -35,7 +35,7 @@ def generate_case_narrative(
             )
         else:
             overall_assessment = (
-                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับต่ำ): พฤติกรรมธุรกรรมปกติ ไม่พบความเชื่อมโยงที่น่าสงสัย"
+                f"คะแนนความเสี่ยง {risk_score:.1f}/100: พฤติกรรมส่วนบุคคลทั่วไป แต่มีสัญญาณธุรกรรมหรือเส้นทางเงินที่ต้องตรวจสอบ"
             )
     else:
         if risk_score >= 80.0:
@@ -49,7 +49,7 @@ def generate_case_narrative(
             )
         else:
             overall_assessment = (
-                f"Risk Score {risk_score:.1f}/100 (Low): Normal transaction activity with no suspicious network links."
+                f"Risk Score {risk_score:.1f}/100: Profile aligns with individual activity, but transaction topology warrants monitoring."
             )
 
     # 2. Concise Demographic Assessment
@@ -212,11 +212,22 @@ def generate_case_narrative(
                 ]
             }
         else:
-            recommendation = {
-                "title": "ให้บริการตามปกติ",
-                "legal_basis": "มาตรการดูแลลูกค้าตามเกณฑ์มาตรฐาน",
-                "protocol": ["1. ไม่พบความเสี่ยงที่มีนัยสำคัญ อนุญาตให้ทำธุรกรรมตามปกติ"]
-            }
+            if red_flags:
+                recommendation = {
+                    "title": "เฝ้าระวังเข้มงวด / ตรวจสอบเหยื่อถูกหลอก (Enhanced Due Diligence)",
+                    "legal_basis": "พ.ร.ก. 2566 มาตรา 6 และเกณฑ์คุ้มครองผู้ใช้บริการ ธปท.",
+                    "protocol": [
+                        "1. ตรวจพบกระแสเงินโอนออกสูงผิดปกติ หรือมีเส้นทางเงินเชื่อมโยงกับบัญชีม้าในเครือข่าย",
+                        "2. ติดต่อเจ้าของบัญชีเพื่อแจ้งเตือนความเสี่ยงการตกเป็นเหยื่อมิจฉาชีพ (Scam Victim Outreach)",
+                        "3. บังคับสแกนใบหน้าและจำกัดเพดานวงเงินโอนเพื่อป้องกันความเสียหายขยายวงกว้าง"
+                    ]
+                }
+            else:
+                recommendation = {
+                    "title": "ให้บริการตามปกติ",
+                    "legal_basis": "มาตรการดูแลลูกค้าตามเกณฑ์มาตรฐาน",
+                    "protocol": ["1. ไม่พบความเสี่ยงที่มีนัยสำคัญ อนุญาตให้ทำธุรกรรมตามปกติ"]
+                }
     else:
         if "ม้าดำ" in raw_tier:
             recommendation = {
