@@ -827,7 +827,7 @@ with tab_case:
         with nc2:
             hops_val = st.radio("ระดับเชื่อมโยง" if lang == "th" else "Hops", [1, 2], horizontal=True, index=0)
         with nc3:
-            edges_val = st.slider("จำนวนคู่สัญญาสูงสุด" if lang == "th" else "Max Counterparties", 10, 50, 20, 5)
+            edges_val = st.slider("จำนวนบัญชีที่แสดงบนผัง" if lang == "th" else "Max Counterparties", 10, 50, 20, 5)
         with nc4:
             st.write("")
             only_risky_val = st.checkbox("เฉพาะบัญชีเสี่ยงสูง" if lang == "th" else "High-Risk Only", value=False)
