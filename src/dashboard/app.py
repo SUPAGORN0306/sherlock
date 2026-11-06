@@ -865,7 +865,7 @@ with tab_case:
     
     top_senders_col, top_rec_col = st.columns(2)
     with top_senders_col:
-        st.markdown(f"**{'5 อันดับบัญชีต้นทางที่โอนเงินเข้าสูงสุด' if lang == 'th' else 'Top 5 Upstream Senders (Incoming Funds)'}**")
+        st.markdown(f"**{'5 อันดับบัญชีที่โอนเงินเข้ามากที่สุด' if lang == 'th' else 'Top 5 Upstream Senders (Incoming Funds)'}**")
         if not in_tx_sub.empty:
             s_grp = in_tx_sub.groupby("From Account")["Amount Received"].agg(["count", "sum"]).reset_index().sort_values("sum", ascending=False).head(5)
             s_grp["bank"] = s_grp["From Account"].map(bank_lookup).fillna("-")
@@ -880,14 +880,14 @@ with tab_case:
             st.caption("ไม่มีรายการรับเงินเข้า" if lang == "th" else "No incoming transactions")
 
     with top_rec_col:
-        st.markdown(f"**{'5 อันดับบัญชีปลายทางที่รับเงินต่อสูงสุด (บัญชีแถว 2)' if lang == 'th' else 'Top 5 Downstream Beneficiaries (Outgoing Funds)'}**")
+        st.markdown(f"**{'5 อันดับบัญชีที่รับเงินโอนออกมากที่สุด' if lang == 'th' else 'Top 5 Downstream Beneficiaries (Outgoing Funds)'}**")
         if not out_tx_sub.empty:
             r_grp = out_tx_sub.groupby("To Account")["Amount Received"].agg(["count", "sum"]).reset_index().sort_values("sum", ascending=False).head(5)
             r_grp["bank"] = r_grp["To Account"].map(bank_lookup).fillna("-")
             r_grp["tier"] = r_grp["To Account"].apply(lambda a: translate_tier(pred_tier_lookup.get(a, "ปกติ (ความเสี่ยงต่ำ)"), lang))
             r_grp["sum"] = r_grp["sum"].round(2)
             if lang == "th":
-                r_disp = r_grp[["bank", "To Account", "tier", "count", "sum"]].rename(columns={"bank": "ธนาคาร", "To Account": "เลขที่บัญชีผู้รับโอนต่อ", "tier": "ระดับความเสี่ยง", "count": "จำนวนครั้ง", "sum": "ยอดรวม (บาท)"})
+                r_disp = r_grp[["bank", "To Account", "tier", "count", "sum"]].rename(columns={"bank": "ธนาคาร", "To Account": "เลขที่บัญชีผู้รับเงิน", "tier": "ระดับความเสี่ยง", "count": "จำนวนครั้ง", "sum": "ยอดรวม (บาท)"})
             else:
                 r_disp = r_grp[["bank", "To Account", "tier", "count", "sum"]].rename(columns={"bank": "Bank ID", "To Account": "Beneficiary Account", "tier": "Risk Tier", "count": "Txns", "sum": "Total (THB)"})
             st.dataframe(r_disp, use_container_width=True, hide_index=True)
@@ -900,7 +900,7 @@ with tab_case:
         jmp1, jmp2 = st.columns([3, 1])
         with jmp1:
             next_hop_acc = st.selectbox(
-                "สืบสวนต่อตามเส้นทางเงิน (เลือกบัญชีธนาคารหรือบัญชีแถว 2 เพื่อตรวจสอบต่อทันที)" if lang == "th" else "Chain Investigation: Select Bank Account to Trace",
+                "เลือกบัญชีที่ต้องการตามรอยเส้นเงินต่อ" if lang == "th" else "Chain Investigation: Select Bank Account to Trace",
                 options=all_counterparties
             )
         with jmp2:
