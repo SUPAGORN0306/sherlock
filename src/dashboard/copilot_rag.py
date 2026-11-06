@@ -177,17 +177,34 @@ class CopilotRAG:
                         f"- **Account Dispersion:** Transacted with **{total_cp} unique accounts** ({senders_cnt} senders, {receivers_cnt} beneficiaries) across {unique_banks_cnt} banks\n\n"
                         f"**3. Specific Discrepancy Assessment:**\n"
                     )
+                    is_high_volume = (out_amt >= 50_000 or avg_out >= 3_000 or total_turnover >= 150_000 or len(high_risk_cps) >= 5)
+                    ratio_str = f"exceeds incoming by {out_amt / max(in_amt, 1):.1f}x" if out_amt > in_amt else f"represents {out_amt / max(in_amt, 1) * 100:.1f}% of incoming funds"
+
                     if occ_raw in ["unemployed", "student", "retired"] or age <= 22 or age >= 60:
-                        ans += (
-                            f"- **High Conflict Detected:** The account holder is registered as **{occ_en} (Age {age})**, a segment without regular commercial cash-flow, "
-                            f"yet executed {out_cnt} outgoing transfers totaling THB {out_amt:,.2f} to {receivers_cnt} different accounts.\n"
-                            f"- **Mule Typology Match:** High account dispersion combined with an inactive-income occupation strongly indicates a **rented or nominee mule account**.\n"
-                        )
+                        if is_high_volume or len(high_risk_cps) > 0:
+                            ans += (
+                                f"- **High Conflict Detected:** The account holder is registered as **{occ_en} (Age {age})**, a segment without regular commercial cash-flow, "
+                                f"yet executed {out_cnt} outgoing transfers totaling THB {out_amt:,.2f} to {receivers_cnt} different accounts ({ratio_str}).\n"
+                                f"- **Mule Typology Match:** High account dispersion combined with an inactive-income occupation strongly indicates a **rented or nominee mule account**.\n"
+                            )
+                        else:
+                            ans += (
+                                f"- **Consistent with Standard Living Expenses:** The account holder is registered as **{occ_en} (Age {age})**. "
+                                f"Although {out_cnt} outgoing transfers were executed, the average amount is only **THB {avg_out:,.2f}** per transfer (Total THB {out_amt:,.2f}), "
+                                f"which is consistent with everyday retail subsistence spending.\n"
+                                f"- **Conclusion:** Transaction turnover aligns with individual economic status; does not match nominee mule typologies.\n"
+                            )
                     else:
-                        ans += (
-                            f"- **Behavioral Deviation:** While the holder declares **{occ_en} (Age {age})**, the transaction network ({total_cp} accounts across {unique_banks_cnt} banks) "
-                            f"and linkage to {len(high_risk_cps)} high-risk accounts deviate from standard personal banking behavior.\n"
-                        )
+                        if is_high_volume or len(high_risk_cps) > 0:
+                            ans += (
+                                f"- **Behavioral Deviation:** While the holder declares **{occ_en} (Age {age})**, the transaction network ({total_cp} accounts across {unique_banks_cnt} banks) "
+                                f"and linkage to {len(high_risk_cps)} high-risk accounts deviate from standard personal banking behavior.\n"
+                            )
+                        else:
+                            ans += (
+                                f"- **Behavior Consistent with Profile:** Average transaction size (THB {avg_out:,.2f}) and total volume (THB {out_amt:,.2f}) "
+                                f"align with standard personal expenditure for {occ_en}.\n"
+                            )
                 elif merchant_obj:
                     mid = merchant_obj.get("merchant_id", "-")
                     bnk = merchant_obj.get("bank", "-")
@@ -210,8 +227,11 @@ class CopilotRAG:
                         f"- **Total Turnover:** THB {total_turnover:,.2f} ({total_tx} txns across {total_cp} accounts)\n"
                         f"- **Assessment:** Corporate account is linked to {len(high_risk_cps)} high-risk mule accounts; verify whether the legal representative ({rep_line}) is acting as a nominee director for a shell company.\n"
                     )
-                if linked_info:
-                    ans += f"\n- **Shared Ownership Ring:** Holder `{owner_id}` also controls {len(linked_info)} other account(s): `{', '.join(linked_info)}`."
+                other_linked = [x for x in linked_info if x != acc]
+                if other_linked:
+                    ans += f"\n- **Shared Ownership Ring:** Holder `{owner_id}` also controls {len(other_linked)} other account(s): `{', '.join(other_linked)}`."
+                else:
+                    ans += f"\n- **Shared Ownership Ring:** No other accounts registered under holder `{owner_id}` in system."
                 return ans
 
             elif intent in ["flow_and_law", "legal_authority"]:
@@ -284,19 +304,36 @@ class CopilotRAG:
                     f"- **การกระจายตัวของบัญชีที่รับ-โอน:** ทำธุรกรรมเชื่อมโยงกับบัญชีอื่นถึง **{total_cp} บัญชี** (ผู้โอนเข้า {senders_cnt} บัญชี และผู้รับโอนออก {receivers_cnt} บัญชี) ข้าม **{unique_banks_cnt} ธนาคาร**\n\n"
                     f"**3. ข้อสังเกตความขัดแย้งที่ตรวจพบ:**\n"
                 )
+                is_high_volume = (out_amt >= 50_000 or avg_out >= 3_000 or total_turnover >= 150_000 or len(high_risk_cps) >= 5)
+                ratio_str = f"สูงกว่ายอดรับเข้า {out_amt / max(in_amt, 1):.1f} เท่า" if out_amt > in_amt else f"คิดเป็น {out_amt / max(in_amt, 1) * 100:.1f}% ของยอดรับเข้า"
+
                 if occ_raw in ["unemployed", "student", "retired"] or age <= 22 or age >= 60:
-                    ans += (
-                        f"- **พบความขัดแย้งระดับสูงมาก:** ผู้ถือบัญชีแจ้งสถานะอาชีพ **`{occ_th}` (อายุ {age} ปี)** ซึ่งเป็นกลุ่มที่ไม่มีรายได้ประจำจากการประกอบธุรกิจ "
-                        f"แต่กลับมีการโอนเงินออกถึง **{out_cnt} รายการ รวม ฿{out_amt:,.2f} บาท ไปยัง {receivers_cnt} บัญชีปลายทาง** (มากกว่ายอดรับเข้า {out_amt / max(in_amt, 1):.1f} เท่า)\n"
-                        f"- **ข้อบ่งชี้บัญชีม้ารับจ้างเปิด:** การที่ผู้มีสถานะ `{occ_th}` มีการโอนเชื่อมโยงถึง {total_cp} บัญชี และพัวพันกับบัญชีม้าความเสี่ยงสูงอีก {len(high_risk_cps)} บัญชี "
-                        f"ไม่สอดคล้องกับการใช้บัญชีเพื่อการยังชีพปกติ เข้าข่ายลักษณะ **บัญชีม้ารับจ้างเปิดหรือถูกสวมสิทธิ์** ตามเกณฑ์ ธปท.\n"
-                    )
+                    if is_high_volume or len(high_risk_cps) > 0:
+                        ans += (
+                            f"- **พบความขัดแย้งระดับสูง:** ผู้ถือบัญชีแจ้งสถานะอาชีพ **`{occ_th}` (อายุ {age} ปี)** ซึ่งเป็นกลุ่มที่ไม่มีรายได้ประจำจากการประกอบธุรกิจ "
+                            f"แต่กลับมีการโอนเงินออกถึง **{out_cnt} รายการ รวม ฿{out_amt:,.2f} บาท ไปยัง {receivers_cnt} บัญชีปลายทาง** ({ratio_str})\n"
+                            f"- **ข้อบ่งชี้บัญชีม้ารับจ้างเปิด:** การที่ผู้มีสถานะ `{occ_th}` มีการโอนเชื่อมโยงถึง {total_cp} บัญชี และพัวพันกับบัญชีม้าความเสี่ยงสูงอีก {len(high_risk_cps)} บัญชี "
+                            f"ไม่สอดคล้องกับการใช้บัญชีเพื่อการยังชีพปกติ เข้าข่ายลักษณะ **บัญชีม้ารับจ้างเปิดหรือถูกสวมสิทธิ์** ตามเกณฑ์ ธปท.\n"
+                        )
+                    else:
+                        ans += (
+                            f"- **สอดคล้องกับการดำรงชีพปกติ (ไม่พบความขัดแย้งรุนแรง):** ผู้ถือบัญชีแจ้งสถานะอาชีพ **`{occ_th}` (อายุ {age} ปี)** "
+                            f"แม้จะมีการโอนเงินออก {out_cnt} รายการ แต่มียอดโอนเฉลี่ยเพียงครั้งละ **฿{avg_out:,.2f} บาท** (รวมทั้งสิ้น ฿{out_amt:,.2f} บาท) "
+                            f"ซึ่งสอดคล้องกับการใช้จ่ายในชีวิตประจำวันทั่วไปตามสถานะทางเศรษฐกิจ\n"
+                            f"- **ข้อสรุป:** พฤติกรรมการหมุนเวียนของเงินอยู่ในเกณฑ์ปกติสำหรับการยังชีพ ไม่เข้าข่ายลักษณะบัญชีม้ารับจ้างเปิด\n"
+                        )
                 else:
-                    ans += (
-                        f"- **พบความผิดปกติเทียบกับกลุ่มอาชีพ `{occ_th}`:** แม้ผู้ถือบัญชีจะแจ้งอาชีพ `{occ_th}` (อายุ {age} ปี) แต่รูปแบบการทำธุรกรรมที่เชื่อมโยงถึง **{total_cp} บัญชี** "
-                        f"(โอนออกไปยัง {receivers_cnt} บัญชี รวม ฿{out_amt:,.2f} บาท) และมีเส้นทางเงินพัวพันกับบัญชีความเสี่ยงสูงในเครือข่ายถึง **{len(high_risk_cps)} บัญชี** "
-                        f"เบี่ยงเบนไปจากพฤติกรรมบัญชีเงินเดือนหรือบัญชีใช้จ่ายส่วนบุคคลตามปกติอย่างมีนัยสำคัญ\n"
-                    )
+                    if is_high_volume or len(high_risk_cps) > 0:
+                        ans += (
+                            f"- **พบความผิดปกติเทียบกับกลุ่มอาชีพ `{occ_th}`:** แม้ผู้ถือบัญชีจะแจ้งอาชีพ `{occ_th}` (อายุ {age} ปี) แต่รูปแบบการทำธุรกรรมที่เชื่อมโยงถึง **{total_cp} บัญชี** "
+                            f"(โอนออกไปยัง {receivers_cnt} บัญชี รวม ฿{out_amt:,.2f} บาท) และมีเส้นทางเงินพัวพันกับบัญชีความเสี่ยงสูงในเครือข่ายถึง **{len(high_risk_cps)} บัญชี** "
+                            f"เบี่ยงเบนไปจากพฤติกรรมบัญชีเงินเดือนหรือบัญชีใช้จ่ายส่วนบุคคลตามปกติอย่างมีนัยสำคัญ\n"
+                        )
+                    else:
+                        ans += (
+                            f"- **พฤติกรรมสอดคล้องกับกลุ่มอาชีพ `{occ_th}`:** ขนาดธุรกรรมเฉลี่ยครั้งละ ฿{avg_out:,.2f} บาท "
+                            f"และยอดโอนรวม ฿{out_amt:,.2f} บาท สอดคล้องกับพฤติกรรมการใช้จ่ายส่วนบุคคลตามปกติ ไม่พบสัญญาณความผิดปกติเชิงโครงสร้าง\n"
+                        )
             elif merchant_obj:
                 mid = merchant_obj.get("merchant_id", "-")
                 bnk = merchant_obj.get("bank", "-")
@@ -336,10 +373,11 @@ class CopilotRAG:
             else:
                 ans += f"- ไม่พบข้อมูลทะเบียนประวัติลูกค้าภายในระบบ (บัญชีภายนอก)\n"
 
-            if linked_info:
-                ans += f"\n**4. เครือข่ายบัญชีภายใต้ผู้ถือครองเดียวกัน (`{owner_id}`):**\n- ตรวจพบบัญชีอื่นที่เปิดโดยบุคคลหรือผู้แทนรายเดียวกันอีก **{len(linked_info)} บัญชี** ได้แก่ `{', '.join(linked_info)}` (ควรตรวจสอบและพิจารณามาตรการระงับพร้อมกันทั้งกลุ่ม)"
+            other_linked = [x for x in linked_info if x != acc]
+            if other_linked:
+                ans += f"\n**4. เครือข่ายบัญชีภายใต้ผู้ถือครองเดียวกัน (`{owner_id}`):**\n- ตรวจพบบัญชีอื่นที่เปิดโดยบุคคลหรือผู้แทนรายเดียวกันอีก **{len(other_linked)} บัญชี** ได้แก่ `{', '.join(other_linked)}` (ควรตรวจสอบความเชื่อมโยงพร้อมกันทั้งกลุ่ม)"
             else:
-                ans += f"\n**4. การถือครองบัญชีอื่นในระบบ:**\n- ไม่พบบัญชีอื่นภายใต้รหัสผู้ถือบัญชี `{owner_id}` ในระบบ แต่ควรเรียกยืนยันตัวตนและตรวจสอบแหล่งที่มาของเงิน ณ สาขา"
+                ans += f"\n**4. การถือครองบัญชีอื่นในระบบ:**\n- ไม่พบบัญชีอื่นภายใต้รหัสผู้ถือบัญชี `{owner_id}` ในระบบ"
             return ans
 
         elif intent in ["flow_and_law", "legal_authority"]:

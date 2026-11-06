@@ -14,7 +14,8 @@ def generate_case_narrative(
     tx_df: Optional[pd.DataFrame] = None,
     person_data: Optional[Dict[str, Any]] = None,
     merchant_data: Optional[Dict[str, Any]] = None,
-    lang: str = "th"
+    lang: str = "th",
+    pred_tier_lookup: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     raw_tier = pred_data.get("mule_tier", "ปกติ (ความเสี่ยงต่ำ)")
     disp_tier = translate_tier(raw_tier, lang)
@@ -22,37 +23,7 @@ def generate_case_narrative(
     
     red_flags = []
     
-    # 1. Concise Overall Assessment
-    if lang == "th":
-        if risk_score >= 80.0:
-            overall_assessment = (
-                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับสูงมาก): พบรูปแบบการรับและโอนเงินออกอย่างรวดเร็ว "
-                f"เชื่อมโยงกับกลุ่มบัญชีที่มีประวัติทุจริตชัดเจน"
-            )
-        elif risk_score >= 50.0:
-            overall_assessment = (
-                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับปานกลาง-สูง): พฤติกรรมการเคลื่อนไหวของเงินผิดปกติจากบัญชีทั่วไป ต้องตรวจสอบเพิ่มเติม"
-            )
-        else:
-            overall_assessment = (
-                f"คะแนนความเสี่ยง {risk_score:.1f}/100: พฤติกรรมส่วนบุคคลทั่วไป แต่มีสัญญาณธุรกรรมหรือเส้นทางเงินที่ต้องตรวจสอบ"
-            )
-    else:
-        if risk_score >= 80.0:
-            overall_assessment = (
-                f"Risk Score {risk_score:.1f}/100 (Critical): Exhibits rapid pass-through fund movements "
-                f"directly linked to known illicit mule networks."
-            )
-        elif risk_score >= 50.0:
-            overall_assessment = (
-                f"Risk Score {risk_score:.1f}/100 (Elevated): Transaction velocity deviates from standard customer baselines."
-            )
-        else:
-            overall_assessment = (
-                f"Risk Score {risk_score:.1f}/100: Profile aligns with individual activity, but transaction topology warrants monitoring."
-            )
-
-    # 2. Concise Demographic Assessment
+    # 1. Demographic Assessment
     demo_findings = []
     if person_data:
         age = person_data.get("person_age", 0)
@@ -63,11 +34,11 @@ def generate_case_narrative(
         
         if lang == "th":
             demo_str = f"บุคคลธรรมดา | อายุ {age} ปี | อาชีพ: {occ} | การศึกษา: {edu} | สถานภาพ: {mar}"
-            if (age <= 22 or age >= 60 or occ_raw in ["retired", "student", "unemployed"]) and risk_score >= 20:
+            if (age <= 22 or age >= 60 or occ_raw in ["retired", "student", "unemployed"]) and risk_score >= 35:
                 red_flags.append(f"ข้อมูลผู้ถือบัญชี ({occ} อายุ {age} ปี) ไม่สอดคล้องกับปริมาณธุรกรรมและจำนวนคู่สัญญาที่สูงผิดปกติ")
         else:
             demo_str = f"Individual | Age: {age} | Occupation: {occ} | Education: {edu} | Marital: {mar}"
-            if (age <= 22 or age >= 60 or occ_raw in ["retired", "student", "unemployed"]) and risk_score >= 20:
+            if (age <= 22 or age >= 60 or occ_raw in ["retired", "student", "unemployed"]) and risk_score >= 35:
                 red_flags.append(f"Customer profile ({occ}, age {age}) conflicts with elevated transaction volume and counterparty dispersion")
         demo_findings.append(demo_str)
     elif merchant_data:
@@ -78,17 +49,17 @@ def generate_case_narrative(
         
         if lang == "th":
             demo_str = f"นิติบุคคล ({m_type}) | ธุรกิจ: {ind} | ทุนจดทะเบียน: ฿{capital:,.0f} บาท | ผู้แทนนิติบุคคล: {rep_id}"
-            if risk_score >= 20:
+            if risk_score >= 35:
                 red_flags.append(f"นิติบุคคลกลุ่ม {ind} มีเส้นทางการเงินเชื่อมโยงกับกลุ่มบัญชีเสี่ยงสูง อาจเป็นนิติบุคคลบังหน้า")
         else:
             demo_str = f"Corporate ({m_type}) | Industry: {ind} | Capital: THB {capital:,.0f} | Legal Rep: {rep_id}"
-            if risk_score >= 20:
+            if risk_score >= 35:
                 red_flags.append(f"Corporate entity ({ind}) linked to high-risk mule flows; potential shell company")
         demo_findings.append(demo_str)
     else:
         demo_findings.append("ไม่พบข้อมูลทะเบียนลูกค้า" if lang == "th" else "No internal KYC profile found")
 
-    # 3. Behavioral Indicators (No S1/S3/S6 codes!)
+    # 2. Behavioral Indicators
     rules_detail = {}
     if feat_data:
         s1_hit = feat_data.get("s1_hit", 0)
@@ -126,8 +97,9 @@ def generate_case_narrative(
             if night_ratio > 0.15:
                 red_flags.append(f"High late-night transaction ratio (00:00-05:59) at {night_ratio*100:.1f}%")
 
-    # 4. Transaction Flow Summary
+    # 3. Transaction Flow Summary & Counterparty Network Risk
     flow_summary = {}
+    high_risk_cps = {}
     if tx_df is not None and not tx_df.empty:
         acc_tx = tx_df[(tx_df["From Account"] == account_id) | (tx_df["To Account"] == account_id)]
         in_flow = acc_tx[acc_tx["To Account"] == account_id]
@@ -145,6 +117,32 @@ def generate_case_narrative(
             "laundering_amt": float(laundering_tx["Amount Received"].sum())
         }
         
+        # Check high-risk counterparties from pred_tier_lookup
+        if pred_tier_lookup:
+            all_cps = (set(acc_tx["From Account"]).union(set(acc_tx["To Account"]))) - {account_id}
+            for cp in all_cps:
+                cp_tier = pred_tier_lookup.get(cp, "")
+                if any(k in cp_tier for k in ["ม้าดำ", "ม้าเทา", "ม้าน้ำตาล"]):
+                    high_risk_cps[cp] = cp_tier
+            
+            if high_risk_cps:
+                black_cnt = sum(1 for t in high_risk_cps.values() if "ม้าดำ" in t)
+                grey_cnt = sum(1 for t in high_risk_cps.values() if "ม้าเทา" in t)
+                brown_cnt = sum(1 for t in high_risk_cps.values() if "ม้าน้ำตาล" in t)
+                detail_parts = []
+                if black_cnt > 0:
+                    detail_parts.append(f"ม้าดำ {black_cnt} บัญชี" if lang == "th" else f"{black_cnt} Black Mules")
+                if grey_cnt > 0:
+                    detail_parts.append(f"ม้าเทา {grey_cnt} บัญชี" if lang == "th" else f"{grey_cnt} Grey Mules")
+                if brown_cnt > 0:
+                    detail_parts.append(f"ม้าน้ำตาล {brown_cnt} บัญชี" if lang == "th" else f"{brown_cnt} Brown Mules")
+                detail_str = ", ".join(detail_parts)
+                
+                if lang == "th":
+                    red_flags.insert(0, f"ตรวจพบเส้นทางเงินเชื่อมโยงโดยตรงกับบัญชีม้าความเสี่ยงสูงในเครือข่าย {len(high_risk_cps)} บัญชี ({detail_str})")
+                else:
+                    red_flags.insert(0, f"Direct transactional links to {len(high_risk_cps)} high-risk mule accounts ({detail_str})")
+
         if len(laundering_tx) > 0:
             if lang == "th":
                 red_flags.append(f"พบธุรกรรมเชื่อมโยงเส้นทางฟอกเงินโดยตรง {len(laundering_tx)} รายการ (รวม ฿{laundering_tx['Amount Received'].sum():,.2f} บาท)")
@@ -153,16 +151,64 @@ def generate_case_narrative(
                 
         t_in = flow_summary["total_in_amt"]
         t_out = flow_summary["total_out_amt"]
-        if t_out > max(t_in * 1.8, 50_000) and flow_summary["receivers_count"] >= 10:
+        if t_out > max(t_in * 1.8, 50_000) and flow_summary["receivers_count"] >= 5:
             if lang == "th":
                 red_flags.append(f"ยอดโอนออก (฿{t_out:,.2f}) สูงกว่ายอดรับเข้า {t_out/max(t_in, 1):.1f} เท่า โดยกระจายไปยัง {flow_summary['receivers_count']} บัญชีปลายทาง")
             else:
                 red_flags.append(f"Outgoing volume (THB {t_out:,.2f}) exceeds incoming by {t_out/max(t_in, 1):.1f}x across {flow_summary['receivers_count']} beneficiary accounts")
-        elif t_in > max(t_out * 1.8, 50_000) and flow_summary["senders_count"] >= 10:
+        elif t_in > max(t_out * 1.8, 50_000) and flow_summary["senders_count"] >= 5:
             if lang == "th":
                 red_flags.append(f"ยอดรับเข้า (฿{t_in:,.2f}) สูงกว่ายอดโอนออก {t_in/max(t_out, 1):.1f} เท่า โดยรับโอนสะสมจาก {flow_summary['senders_count']} บัญชีต้นทาง")
             else:
                 red_flags.append(f"Incoming volume (THB {t_in:,.2f}) exceeds outgoing by {t_in/max(t_out, 1):.1f}x from {flow_summary['senders_count']} sender accounts")
+
+    # 4. Concise Overall Assessment (Harmonized with Network and Profile)
+    if lang == "th":
+        if risk_score >= 80.0:
+            overall_assessment = (
+                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับสูงมาก): พบรูปแบบการรับและโอนเงินออกอย่างรวดเร็ว "
+                f"เชื่อมโยงกับกลุ่มบัญชีที่มีประวัติทุจริตชัดเจน"
+            )
+        elif risk_score >= 50.0:
+            overall_assessment = (
+                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับปานกลาง-สูง): พฤติกรรมการเคลื่อนไหวของเงินผิดปกติจากบัญชีทั่วไป ต้องตรวจสอบเพิ่มเติม"
+            )
+        elif len(high_risk_cps) > 0:
+            overall_assessment = (
+                f"คะแนนพฤติกรรมเดี่ยว {risk_score:.1f}/100 (ระดับต่ำ) แต่ตรวจพบความเสี่ยงสูงจากเครือข่ายปลายทาง: "
+                f"มีการโอนเงินไปยังบัญชีม้าความเสี่ยงสูงอย่างต่อเนื่อง เข้าข่ายสัญญาณเหยื่อถูกหลอก (Scam Victim)"
+            )
+        elif red_flags:
+            overall_assessment = (
+                f"คะแนนความเสี่ยง {risk_score:.1f}/100: พฤติกรรมส่วนบุคคลทั่วไป แต่มีสัญญาณธุรกรรมหรือเส้นทางเงินที่ต้องตรวจสอบเพิ่มเติม"
+            )
+        else:
+            overall_assessment = (
+                f"คะแนนความเสี่ยง {risk_score:.1f}/100 (ระดับต่ำ): พฤติกรรมธุรกรรมปกติ ไม่พบสัญญาณความเสี่ยงในเครือข่าย"
+            )
+    else:
+        if risk_score >= 80.0:
+            overall_assessment = (
+                f"Risk Score {risk_score:.1f}/100 (Critical): Exhibits rapid pass-through fund movements "
+                f"directly linked to known illicit mule networks."
+            )
+        elif risk_score >= 50.0:
+            overall_assessment = (
+                f"Risk Score {risk_score:.1f}/100 (Elevated): Transaction velocity deviates from standard customer baselines."
+            )
+        elif len(high_risk_cps) > 0:
+            overall_assessment = (
+                f"Single-node score {risk_score:.1f}/100 (Low), but elevated risk detected from network counterparty exposure: "
+                f"Recurring transfers into known mule accounts indicate potential scam victim behavior."
+            )
+        elif red_flags:
+            overall_assessment = (
+                f"Risk Score {risk_score:.1f}/100: Profile aligns with individual activity, but transaction topology warrants monitoring."
+            )
+        else:
+            overall_assessment = (
+                f"Risk Score {risk_score:.1f}/100 (Low): Standard personal profile; no suspicious network links detected."
+            )
 
     # 5. Concise Regulatory Recommendations
     if lang == "th":
@@ -212,14 +258,14 @@ def generate_case_narrative(
                 ]
             }
         else:
-            if red_flags:
+            if len(high_risk_cps) > 0 or red_flags:
                 recommendation = {
-                    "title": "เฝ้าระวังเข้มงวด / ตรวจสอบเหยื่อถูกหลอก (Enhanced Due Diligence)",
-                    "legal_basis": "พ.ร.ก. 2566 มาตรา 6 และเกณฑ์คุ้มครองผู้ใช้บริการ ธปท.",
+                    "title": "เฝ้าระวังเข้มงวดเพื่อคุ้มครองเหยื่อ / สกัดกั้นโอนออก (Victim Protection Protocol)",
+                    "legal_basis": "แนวนโยบายคุ้มครองผู้ใช้บริการทางการเงิน และ พ.ร.ก. 2566 มาตรา 6",
                     "protocol": [
-                        "1. ตรวจพบกระแสเงินโอนออกสูงผิดปกติ หรือมีเส้นทางเงินเชื่อมโยงกับบัญชีม้าในเครือข่าย",
-                        "2. ติดต่อเจ้าของบัญชีเพื่อแจ้งเตือนความเสี่ยงการตกเป็นเหยื่อมิจฉาชีพ (Scam Victim Outreach)",
-                        "3. บังคับสแกนใบหน้าและจำกัดเพดานวงเงินโอนเพื่อป้องกันความเสียหายขยายวงกว้าง"
+                        "1. ตรวจพบการโอนเงินเชื่อมโยงบัญชีม้าความเสี่ยงสูงในเครือข่าย เข้าข่ายเหยื่อถูกหลอกลวง (Scam Victim)",
+                        "2. ประสานงานติดต่อเจ้าของบัญชีทันทีเพื่อเตือนภัยมิจฉาชีพและป้องกันความเสียหาย (Proactive Scam Outreach)",
+                        "3. ระงับการโอนออกไปยังบัญชีปลายทางที่เป็นม้าดำชั่วคราว และปรับลดเพดานวงเงินโอน"
                     ]
                 }
             else:
@@ -260,11 +306,22 @@ def generate_case_narrative(
                 "protocol": ["1. Cap daily transfer limit to THB 50,000", "2. Enforce facial recognition for all outgoing transfers"]
             }
         else:
-            recommendation = {
-                "title": "Standard Account Operation",
-                "legal_basis": "Standard KYC Monitoring",
-                "protocol": ["1. No material anomalies detected; maintain normal service"]
-            }
+            if len(high_risk_cps) > 0 or red_flags:
+                recommendation = {
+                    "title": "Victim Protection Protocol / Restrict Outbound Transfers (EDD)",
+                    "legal_basis": "Customer Protection Policy & Technology Crime Decree B.E. 2566 Section 6",
+                    "protocol": [
+                        "1. Outgoing funds routed to high-risk blacklist mules; indicators of in-progress fraud victim",
+                        "2. Initiate immediate proactive outreach to warn customer of scam activity",
+                        "3. Temporarily restrict outbound transfers to high-risk beneficiaries and enforce daily transfer limits"
+                    ]
+                }
+            else:
+                recommendation = {
+                    "title": "Standard Account Operation",
+                    "legal_basis": "Standard KYC Monitoring",
+                    "protocol": ["1. No material anomalies detected; maintain normal service"]
+                }
 
     return {
         "account_id": account_id,

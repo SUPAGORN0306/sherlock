@@ -660,6 +660,7 @@ with tab_case:
     
     # Find Linked Entities / Nominee Ring
     owner_id, linked_accounts = find_linked_accounts(active_acc)
+    pred_tier_lookup = pred_df.set_index("account")["mule_tier"].to_dict()
     
     narrative_res = generate_case_narrative(
         account_id=active_acc,
@@ -668,7 +669,8 @@ with tab_case:
         tx_df=tx_df,
         person_data=person_obj,
         merchant_data=merchant_obj,
-        lang=lang
+        lang=lang,
+        pred_tier_lookup=pred_tier_lookup
     )
     
     disp_tier = narrative_res["tier"]
