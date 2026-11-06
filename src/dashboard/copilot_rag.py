@@ -1,5 +1,5 @@
 """
-Bilingual AI Case Interpretation Copilot & Official AMLO STR Report Drafter
+Bilingual Case Interpretation Assistant & Official AMLO STR Report Drafter
 100% Pure Thai in Thai mode and 100% Pure English in English mode.
 Includes both Markdown and Print-Ready Official HTML Form (AMLO Form 1-03) with window.print() PDF support.
 """

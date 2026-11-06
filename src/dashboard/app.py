@@ -680,22 +680,22 @@ with tab_case:
             if act_code == "DISMISS_NORMAL":
                 disp_badge = "สถานะ: บัญชีปกติ / ยุติเรื่อง" if lang == "th" else "Status: Dismissed (Normal)"
                 st.markdown(f"**<span style='color: #22C55E; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
-                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+                st.caption(f"{'ระดับความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Tier'}: {disp_tier}")
             elif act_code == "FREEZE_AMLO_STR":
                 disp_badge = "สถานะ: ระงับบัญชี 72 ชม. และส่ง ปปง." if lang == "th" else "Status: 72h Freeze & AMLO STR"
                 st.markdown(f"**<span style='color: #EF4444; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
-                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+                st.caption(f"{'ระดับความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Tier'}: {disp_tier}")
             elif act_code == "WATCHLIST_EDD":
                 disp_badge = "สถานะ: เฝ้าระวังเข้มงวด / จำกัดวงเงิน" if lang == "th" else "Status: Watchlist (EDD)"
                 st.markdown(f"**<span style='color: #F59E0B; font-size: 14px;'>{disp_badge}</span>**", unsafe_allow_html=True)
-                st.caption(f"{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'Raw AI Tier'}: {disp_tier}")
+                st.caption(f"{'ระดับความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Tier'}: {disp_tier}")
             else:
-                st.markdown(f"**{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Tier'}:** {disp_tier}")
+                st.markdown(f"**{'ระดับความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Tier'}:** {disp_tier}")
         else:
-            st.markdown(f"**{'ระดับความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Tier'}:** {disp_tier}")
+            st.markdown(f"**{'ระดับความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Tier'}:** {disp_tier}")
             
     with hc2:
-        st.markdown(f"**{'คะแนนความเสี่ยงจาก AI' if lang == 'th' else 'AI Risk Score'}:** `{current_risk:.1f} / 100`")
+        st.markdown(f"**{'คะแนนความเสี่ยงจากโมเดล' if lang == 'th' else 'Model Risk Score'}:** `{current_risk:.1f} / 100`")
         st.progress(min(max(current_risk / 100.0, 0.0), 1.0))
         
     with hc3:
@@ -1070,7 +1070,7 @@ with tab_case:
     bot_c1, bot_c2 = st.columns(2)
     
     with bot_c1:
-        st.markdown(f"**{'ถาม-ตอบและตีความแฟ้มคดีด้วย AI' if lang == 'th' else 'AI Case Interpretation Assistant'}**")
+        st.markdown(f"**{'ถามและตีความแฟ้มคดี' if lang == 'th' else 'Case Interpretation Assistant'}**")
 
         # Build rich case context from actual transactions & counterparty risk
         pred_score_lookup = pred_df.set_index("account")["risk_score"].to_dict()
