@@ -399,7 +399,7 @@ with tab_overview:
         st.markdown(f"<div class='chart-title'>{title_2}</div>", unsafe_allow_html=True)
         
         if not dash_laundering_tx.empty:
-            wk_df = dash_laundering_tx.set_index("Timestamp").resample("W")["Amount Received"].sum().reset_index()
+            wk_df = dash_laundering_tx.set_index("Timestamp").resample("W-SUN", label="left")["Amount Received"].sum().reset_index()
         else:
             wk_df = pd.DataFrame({"Timestamp": [], "Amount Received": []})
             
@@ -445,9 +445,13 @@ with tab_overview:
         else:
             occ_df = pd.DataFrame({"occ": [], "count": []})
             
-        fig4 = px.bar(occ_df, x="count", y="occ", orientation="h", text="count", color="count", color_continuous_scale="Sunsetdark")
+        fig4 = px.bar(
+            occ_df, x="count", y="occ", orientation="h", text="count",
+            color="occ",
+            color_discrete_sequence=["#38BDF8", "#F43F5E", "#F59E0B", "#10B981", "#818CF8", "#A855F7", "#2DD4BF", "#FB923C"]
+        )
         fig4.update_traces(texttemplate='%{text:,}', textposition='outside')
-        fig4.update_layout(**common_layout, coloraxis_showscale=False, xaxis_title="", yaxis_title="")
+        fig4.update_layout(**common_layout, showlegend=False, xaxis_title="", yaxis_title="")
         st.plotly_chart(fig4, use_container_width=True)
 
     r3_c1, r3_c2 = st.columns(2)
@@ -543,37 +547,48 @@ with tab_queue:
 
     q_df = q_df.sort_values("risk_score", ascending=False)
     
-    view_sub = q_df.head(50).copy()
+    # Display row limit control
+    lim_c1, lim_c2 = st.columns([3, 1])
+    with lim_c2:
+        row_limit_opts = [50, 100, 200, 500, "ทั้งหมด (All)"] if lang == "th" else [50, 100, 200, 500, "All"]
+        sel_row_limit = st.selectbox("จำนวนรายการที่แสดงในตาราง" if lang == "th" else "Display Limit", options=row_limit_opts, index=0)
+        
+    n_show = len(q_df) if ("All" in str(sel_row_limit) or "ทั้งหมด" in str(sel_row_limit)) else int(sel_row_limit)
+    view_sub = q_df.head(n_show).copy()
     view_sub["disp_tier"] = view_sub["mule_tier"].apply(lambda x: translate_tier(x, lang))
     view_sub["risk_score"] = view_sub["risk_score"].round(1)
     
     pending_txt = "รอตรวจสอบ" if lang == "th" else "Pending Review"
     view_sub["audit_status"] = view_sub["account"].apply(lambda acc: audit_map.get(acc, pending_txt))
     
-    if lang == "th":
-        st.caption(f"พบทั้งหมด {len(q_df):,} บัญชี (แสดง 50 อันดับแรกตามคะแนนความเสี่ยง)")
-        cols_rename = {
-            "account": "เลขที่บัญชี",
-            "disp_tier": "ระดับความเสี่ยง",
-            "risk_score": "คะแนนความเสี่ยง (0-100)",
-            "audit_status": "สถานะการตรวจสอบ"
-        }
-    else:
-        st.caption(f"Found {len(q_df):,} accounts (Showing top 50 by risk score)")
-        cols_rename = {
-            "account": "Account ID",
-            "disp_tier": "Risk Classification",
-            "risk_score": "Risk Score (0-100)",
-            "audit_status": "Review Status"
-        }
+    with lim_c1:
+        if lang == "th":
+            st.caption(f"พบทั้งหมด **{len(q_df):,}** บัญชี (กำลังแสดง **{len(view_sub):,}** บัญชีแรกตามคะแนนความเสี่ยง)")
+            cols_rename = {
+                "account": "เลขที่บัญชี",
+                "disp_tier": "ระดับความเสี่ยง",
+                "risk_score": "คะแนนความเสี่ยง (0-100)",
+                "audit_status": "สถานะการตรวจสอบ"
+            }
+        else:
+            st.caption(f"Found **{len(q_df):,}** accounts (Displaying **{len(view_sub):,}** accounts by risk score)")
+            cols_rename = {
+                "account": "Account ID",
+                "disp_tier": "Risk Classification",
+                "risk_score": "Risk Score (0-100)",
+                "audit_status": "Review Status"
+            }
         
     st.dataframe(view_sub[list(cols_rename.keys())].rename(columns=cols_rename), use_container_width=True, hide_index=True)
     
+    # Selection from ALL filtered accounts (or type directly!)
+    all_filtered_accounts = q_df["account"].tolist()
     sel_c1, sel_c2 = st.columns([3, 1])
     with sel_c1:
         target_sel = st.selectbox(
-            "เลือกบัญชีที่ต้องการตรวจสอบ" if lang == "th" else "Select Account for Investigation",
-            options=view_sub["account"].tolist() if not view_sub.empty else [st.session_state["selected_account"]]
+            "เลือกบัญชีที่ต้องการตรวจสอบ (ค้นหาหรือเลือกจากทั้งหมดที่ผ่านตัวกรอง)" if lang == "th" else "Select Account for Investigation (Search or select from all filtered accounts)",
+            options=all_filtered_accounts if all_filtered_accounts else [st.session_state["selected_account"]],
+            help="สามารถพิมพ์รหัสบัญชีเพื่อค้นหาและเลือกได้ทันที" if lang == "th" else "Type account ID to search and select"
         )
     with sel_c2:
         st.write("")
