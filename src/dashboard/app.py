@@ -778,26 +778,80 @@ with tab_case:
         st.markdown(f"**{'2. พฤติกรรมความผิดปกติที่ตรวจพบ' if lang == 'th' else '2. Behavioral Risk Indicators'}**")
         with st.container(border=True):
             rules = narrative_res.get("rules_detail", {})
+            flow_info = narrative_res.get("flow_summary", {})
+            t_in = flow_info.get("total_in_amt", 0.0)
+            t_out = flow_info.get("total_out_amt", 0.0)
+
             if lang == "th":
-                p_str = "ตรวจพบความผิดปกติ" if rules.get("pass_through") else "ปกติ"
-                v_str = "ตรวจพบความผิดปกติ" if rules.get("rapid_outflow") else "ปกติ"
-                s_str = "ตรวจพบความผิดปกติ" if rules.get("structuring") else "ปกติ"
+                p_str = "ตรวจพบ" if rules.get("pass_through") else "ปกติ"
+                v_str = "ตรวจพบ" if rules.get("rapid_outflow") else "ปกติ"
+                s_str = "ตรวจพบ" if rules.get("structuring") else "ปกติ"
+                rep_cnt = rules.get("repeat_amt", 0)
+                rep_str = f"พบซ้ำ {rep_cnt} ครั้ง" if rep_cnt > 1 else "ไม่พบ"
+
                 n_pct = rules.get("night_pct", 0.0)
-                
-                st.write(f"• **การพักเงินแล้วส่งต่อทันที:** `{p_str}`")
-                st.write(f"• **การผันเงินออกเร็วภายใน 48 ชม.:** `{v_str}`")
-                st.write(f"• **การแบ่งซอยยอดโอนเลี่ยงเกณฑ์:** `{s_str}`")
-                st.write(f"• **สัดส่วนโอนช่วงวิกาล (00:00-05:59 น.):** `{n_pct:.1f}%`")
+                w_pct = rules.get("weekend_pct", 0.0)
+                n_str = f"{n_pct:.1f}% (สูงผิดปกติ)" if n_pct > 15.0 else f"{n_pct:.1f}% (ปกติ)"
+                w_str = f"{w_pct:.1f}%"
+
+                is_drift = rules.get("is_drift", False)
+                drift_str = "พุ่งสูงกะทันหัน" if is_drift else "สม่ำเสมอตามปกติ"
+
+                if t_out > max(t_in * 1.8, 50_000):
+                    flow_bal_str = f"โอนออกสูงกว่ารับเข้า {t_out / max(t_in, 1):.1f} เท่า"
+                elif t_in > max(t_out * 1.8, 50_000):
+                    flow_bal_str = f"รับเข้าสูงกว่าโอนออก {t_in / max(t_out, 1):.1f} เท่า"
+                else:
+                    flow_bal_str = "สมดุลตามปกติ"
+
+                st.markdown("**พฤติกรรมการหมุนเวียนและส่งต่อเงิน:**")
+                st.write(f"• การพักเงินแล้วโอนออกทันที: `{p_str}`")
+                st.write(f"• การผันเงินออกเร็วภายใน 48 ชั่วโมง: `{v_str}`")
+                st.write(f"• การแบ่งซอยยอดโอนเลี่ยงการตรวจสอบ: `{s_str}`")
+                st.write(f"• การโอนเงินด้วยยอดเดิมซ้ำๆ: `{rep_str}`")
+                st.write(f"• ความสมดุลของเงินรับเข้าและโอนออก: `{flow_bal_str}`")
+
+                st.markdown("**ช่วงเวลาและจังหวะการทำรายการ:**")
+                st.write(f"• ธุรกรรมช่วงวิกาล (00:00-05:59 น.): `{n_str}`")
+                st.write(f"• ธุรกรรมช่วงวันหยุดเสาร์-อาทิตย์: `{w_str}`")
+
+                st.markdown("**การเปลี่ยนแปลงของพฤติกรรมกะทันหัน:**")
+                st.write(f"• ความถี่และยอดเงิน 30 วันล่าสุด: `{drift_str}`")
             else:
                 p_str = "Detected" if rules.get("pass_through") else "Normal"
                 v_str = "Detected" if rules.get("rapid_outflow") else "Normal"
                 s_str = "Detected" if rules.get("structuring") else "Normal"
+                rep_cnt = rules.get("repeat_amt", 0)
+                rep_str = f"Repeated {rep_cnt} times" if rep_cnt > 1 else "None"
+
                 n_pct = rules.get("night_pct", 0.0)
-                
-                st.write(f"• **Rapid Pass-Through Transfer:** `{p_str}`")
-                st.write(f"• **48-Hour Rapid Outflow (>80%):** `{v_str}`")
-                st.write(f"• **Transaction Structuring:** `{s_str}`")
-                st.write(f"• **Late-Night Activity (00:00-05:59):** `{n_pct:.1f}%`")
+                w_pct = rules.get("weekend_pct", 0.0)
+                n_str = f"{n_pct:.1f}% (Elevated)" if n_pct > 15.0 else f"{n_pct:.1f}% (Normal)"
+                w_str = f"{w_pct:.1f}%"
+
+                is_drift = rules.get("is_drift", False)
+                drift_str = "Surged Abnormally" if is_drift else "Consistent Baseline"
+
+                if t_out > max(t_in * 1.8, 50_000):
+                    flow_bal_str = f"Outflow exceeds inflow by {t_out / max(t_in, 1):.1f}x"
+                elif t_in > max(t_out * 1.8, 50_000):
+                    flow_bal_str = f"Inflow exceeds outflow by {t_in / max(t_out, 1):.1f}x"
+                else:
+                    flow_bal_str = "Balanced"
+
+                st.markdown("**Fund Flow & Transfer Patterns:**")
+                st.write(f"• Rapid Pass-Through Transfer: `{p_str}`")
+                st.write(f"• 48-Hour Rapid Outflow (>80%): `{v_str}`")
+                st.write(f"• Structured Layering Transfers: `{s_str}`")
+                st.write(f"• Repeated Identical Amounts: `{rep_str}`")
+                st.write(f"• Inflow vs. Outflow Balance: `{flow_bal_str}`")
+
+                st.markdown("**Timing & Activity Patterns:**")
+                st.write(f"• Late-Night Activity (00:00-05:59): `{n_str}`")
+                st.write(f"• Weekend Activity: `{w_str}`")
+
+                st.markdown("**Sudden Activity Surge:**")
+                st.write(f"• Recent 30-Day Velocity: `{drift_str}`")
 
         # 3. Cash Flow Summary
         st.markdown(f"**{'3. สรุปยอดเงินหมุนเวียน' if lang == 'th' else '3. Cash Flow Summary'}**")

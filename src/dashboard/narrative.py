@@ -66,8 +66,11 @@ def generate_case_narrative(
         s3_hit = feat_data.get("s3_hit", 0)
         s6_hit = feat_data.get("s6_hit", 0)
         s7_hit = feat_data.get("s7_same_amount_cnt", 0)
-        night_ratio = feat_data.get("night_txn_ratio", 0.0)
-        drift_txn = feat_data.get("drift_txn_cnt", 0.0)
+        night_ratio = float(feat_data.get("night_txn_ratio", 0.0))
+        weekend_ratio = float(feat_data.get("weekend_txn_ratio", 0.0))
+        drift_txn = float(feat_data.get("drift_txn_cnt", 0.0))
+        drift_amt = float(feat_data.get("drift_amt_sum", 0.0))
+        is_drift = drift_txn > 0.5 or drift_amt > 0.5
         
         rules_detail = {
             "pass_through": s1_hit > 0,
@@ -75,7 +78,10 @@ def generate_case_narrative(
             "structuring": s6_hit > 0,
             "repeat_amt": int(s7_hit),
             "night_pct": night_ratio * 100,
-            "drift_ratio": drift_txn
+            "weekend_pct": weekend_ratio * 100,
+            "drift_ratio": drift_txn,
+            "drift_amt": drift_amt,
+            "is_drift": is_drift
         }
         
         if lang == "th":
@@ -85,8 +91,12 @@ def generate_case_narrative(
                 red_flags.append("เงินที่รับเข้าถูกผันออกจากบัญชีมากกว่า 80% ภายใน 48 ชั่วโมง")
             if s6_hit > 0:
                 red_flags.append("มีพฤติกรรมแบ่งซอยยอดโอนใกล้เคียงกันเพื่อเลี่ยงเกณฑ์ตรวจสอบ")
+            if int(s7_hit) > 1:
+                red_flags.append(f"พบพฤติกรรมโอนเงินด้วยยอดเดิมซ้ำๆ ถึง {int(s7_hit)} ครั้ง")
             if night_ratio > 0.15:
                 red_flags.append(f"ทำธุรกรรมช่วงวิกาล (00:00-05:59 น.) สูงถึง {night_ratio*100:.1f}%")
+            if is_drift:
+                red_flags.append("ความถี่และยอดเงินโอนในช่วง 30 วันล่าสุดพุ่งสูงกะทันหันผิดปกติ")
         else:
             if s1_hit > 0:
                 red_flags.append("Continuous rapid pass-through transfers immediately after receiving funds")
@@ -94,8 +104,12 @@ def generate_case_narrative(
                 red_flags.append("Over 80% of incoming funds drained within 48 hours")
             if s6_hit > 0:
                 red_flags.append("Transaction structuring detected to evade reporting thresholds")
+            if int(s7_hit) > 1:
+                red_flags.append(f"Repeated identical transaction amounts detected ({int(s7_hit)} times)")
             if night_ratio > 0.15:
                 red_flags.append(f"High late-night transaction ratio (00:00-05:59) at {night_ratio*100:.1f}%")
+            if is_drift:
+                red_flags.append("Transaction velocity surged abruptly over the recent 30-day window")
 
     # 3. Transaction Flow Summary & Counterparty Network Risk
     flow_summary = {}
